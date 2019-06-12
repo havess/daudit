@@ -1,4 +1,6 @@
 import os
+import time
+import threading
 import logging
 import asyncio
 import ssl as ssl_lib
@@ -11,6 +13,9 @@ from message_builder import MessageBuilder
 
 from auditer import DataError
 from auditer import Auditer
+
+import configparser
+from connector import Connector
 
 """This file serves as an example for how to create the same app, but running asynchronously."""
 
@@ -93,15 +98,56 @@ async def message(**payload):
             return await get_message(web_client, user_id, channel_id, MessageType.UNKNOWN)
 
 
-if __name__ == "__main__":
+async def audit():
+    i = 0
+    while i < 3:
+        print("Starting audit")
+        await asyncio.sleep(5)
+        i  = i + 1
+
+
+async def main():
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
     logger.addHandler(logging.StreamHandler())
     ssl_context = ssl_lib.create_default_context(cafile=certifi.where())
+    loop = asyncio.get_event_loop()
+
+
+    # SETUP DATABASE CONNECTOR
+    config = configparser.ConfigParser()
+    config.read("config.ini")
+    user_name = config["DEFAULT"]["USER_NAME"]
+    password = config["DEFAULT"]["PASSWORD"]
+    database = config["DEFAULT"]["DATABASE"]
+    table = config["DEFAULT"]["TABLE"]
+    host = config["DEFAULT"]["HOST"]
+    #conn = Connector(host, database, user_name, password)
+    
+    # INIT SLACK CLIENT
     slack_token = os.environ["SLACK_BOT_TOKEN"]
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
     rtm_client = slack.RTMClient(
         token=slack_token, ssl=ssl_context, run_async=True, loop=loop
     )
-    loop.run_until_complete(rtm_client.start())
+
+    await asyncio.gather(
+        audit(),
+        rtm_client.start(),
+        )
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("INTERRUPT")
+
+    # RUN APPLICATION
+    #try:
+    #    loop.run(tasks)
+    #except KeyboardInterrupt as e:
+    #    print("KEYBOARD INTERRUPT")
+    #    tasks.cancel()
+    #    loop.run_forever()
+    #    tasks.exception()
+    #finally:
+    #    loop.close()
