@@ -5,7 +5,8 @@ class MessageType(Enum):
     RUN = 1
     HELP = 2
     ERROR = 3
-    UNKNOWN = 4
+    INVALID_ARGS = 4
+    UNKNOWN = 5
 
 class MessageBuilder:
     WELCOME_BLOCK = {
@@ -35,7 +36,8 @@ class MessageBuilder:
             "type": "mrkdwn",
             "text": (
                 "The following commands are supported by Daudit: \n\n"
-                "*run* - Initiate a full audit."
+                "*run* - Initiate a full audit. \n"
+                "*set* <key> <value> - Initiate a full audit."
             ),
         },
     }
@@ -46,6 +48,16 @@ class MessageBuilder:
             "type": "mrkdwn",
             "text": (
                 "Invalid command, try typing 'help'. \n\n"
+            ),
+        },
+    }
+
+    INVALID_ARGS_BLOCK = {
+        "type": "section",
+        "text": {
+            "type": "mrkdwn",
+            "text": (
+                "Invalid arguments, try typing 'help' for argument info. \n\n"
             ),
         },
     }
@@ -88,6 +100,17 @@ class MessageBuilder:
             "username" : self.username,
             "blocks": [
                 self.UNSUPPORTED_COMMAND_BLOCK,
+                self.DIVIDER_BLOCK,
+            ]
+        }
+
+    def get_invalid_args_message(self):
+        return {
+            "ts": self.timestamp,
+            "channel": self.channel,
+            "username" : self.username,
+            "blocks": [
+                self.INVALID_ARGS_BLOCK,
                 self.DIVIDER_BLOCK,
             ]
         }
