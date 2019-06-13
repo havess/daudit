@@ -22,7 +22,47 @@ class Connector:
 
         return [c[0] for c in self.cursor.fetchall()]
 
+    def reset_column(self, table_name: str, col_name: str):
+        """
+        Used to reset a column in a table to its original state for demo/testing purposes.
+        There's a copy of the table called 'table_name'+'Source' that we used to reset.
+        """
+
+        source_table_name = table_name + 'Source'
+
+        query = """
+            UPDATE %s AS t1
+            SET t1.%s = (
+                SELECT %s
+                FROM %s AS t2
+                WHERE t1.id = t2.id
+            );
+        """ % (table_name, col_name, col_name, source_table_name)
+        
+        self.cursor.execute(query)
+        self.cnx.commit()
+
+    def add_nulls(self, table_name: str, col_name: str, start_date: datetime.date, end_date: datetime.date, null_prop: float):
+        """
+        Add nulls to a column in a table in the rows between start_date and end_date. 
+        """
+        start_date = start_date.strftime('%Y-%m-%d %H:%M:%S')
+        end_date = end_date.strftime('%Y-%m-%d %H:%M:%S')
+        
+        query = """
+            UPDATE %s
+            SET %s = NULL
+            WHERE 
+                RAND() < %s
+                AND CreatedDate BETWEEN '%s' AND '%s';
+        """ % (table_name, col_name, str(null_prop), start_date, end_date)
+        self.cursor.execute(query)
+        self.cnx.commit()
+
     def create_nulls(self, table_name: str):
+        """
+        Just used to clean data and convert empty strings to NULL.
+        """
 
         cols = self.get_columns(table_name)
 
