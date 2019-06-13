@@ -19,6 +19,28 @@ from connector import Connector
 
 """This file serves as an example for how to create the same app, but running asynchronously."""
 
+async def set_config(args : str):
+    args = args.lower()
+    configList = args.split(' ')
+    
+    if len(configList) != 2:
+        raise Exception()
+
+    key = configList[0]
+    val = configList[1]
+
+    valid_options = ["database", "table"]
+    if key not in valid_options:
+        raise Exception()
+
+    config = configparser.ConfigParser()
+    config.read("config.ini")
+    config.set("DEFAULT", key, val)
+
+    with open("config.ini", "w") as configfile:
+        config.write(configfile)
+
+    
 # For simplicity we'll store our app data in-memory with the following data structure.
 # messages_sent = {"channel": {"user_id": MessageBuilder}}
 messages_sent = {}
@@ -35,6 +57,8 @@ async def get_message(web_client: slack.WebClient, user_id: str, channel: str, m
         message = builder.get_help_message()
     elif msgType == MessageType.ERROR:
         message = builder.get_err_message(err)
+    elif msgType == MessageType.INVALID_ARGS:
+        message = builder.get_invalid_args_message()
     elif msgType == MessageType.UNKNOWN:
         message = builder.get_unsupported_message() 
 
@@ -82,17 +106,26 @@ async def message(**payload):
     user_id = data.get("user")
     text = data.get("text")
 
-    if text and not user_id == "daudit":
+    if text and not user_id == None:
         lower = text.lower()
-        if lower == "run":
+        commandNArgs = lower.partition(' ')
+        command = commandNArgs[0]
+        args = commandNArgs[2]
+        if command == "run":
             try :
                 auditer = Auditer("test", 10000)
                 await auditer.run()
             except DataError as err:
                 return await get_message(web_client, user_id, channel_id, MessageType.ERROR, err)
 
-        elif lower == "help":
+        elif command == "help":
             return await get_message(web_client, user_id, channel_id, MessageType.HELP)
+        
+        elif command == "set":
+            try:
+                return await set_config(args)
+            except: 
+                return await get_message(web_client, user_id, channel_id, MessageType.INVALID_ARGS)
 
         else:
             return await get_message(web_client, user_id, channel_id, MessageType.UNKNOWN)
@@ -101,7 +134,6 @@ async def message(**payload):
 async def audit():
     i = 0
     while i < 3:
-        print("Starting audit")
         await asyncio.sleep(5)
         i  = i + 1
 
@@ -131,7 +163,7 @@ async def main():
     )
 
     await asyncio.gather(
-        audit(),
+        #audit(),
         rtm_client.start(),
         )
 
@@ -140,14 +172,3 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         print("INTERRUPT")
-
-    # RUN APPLICATION
-    #try:
-    #    loop.run(tasks)
-    #except KeyboardInterrupt as e:
-    #    print("KEYBOARD INTERRUPT")
-    #    tasks.cancel()
-    #    loop.run_forever()
-    #    tasks.exception()
-    #finally:
-    #    loop.close()
