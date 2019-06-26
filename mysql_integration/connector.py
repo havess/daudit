@@ -126,7 +126,7 @@ class Connector:
                     WHERE
                         %s BETWEEN '%s' AND '%s'
                 """ % (c, table_name, date_col, start_date, end_date)
-
+    
                 self.cursor.execute(query)
                 a, b = self.cursor.fetchall()[0]
                 res.append((c, a, b))

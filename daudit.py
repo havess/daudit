@@ -2,6 +2,24 @@ import datetime
 import mysql_integration.app as sql
 import pandas as pd
 from math import sqrt
+from enum import Enum
+
+class ErrorType(Enum):
+    NULL_ROWS = 1
+
+def err_to_string(errType) -> str:
+    if errType == ErrorType.NULL_ROWS:
+        return "We detected a change in the proportion of NULL cells"
+    return "An unknown error has occured"
+
+class DataError(Exception):
+    def __init__(self, table: str, col: str, typ: ErrorType):
+        self.table = table
+        self.col = col
+        self.type = typ
+
+    def to_str(self):
+        return "*TABLE*: " + self.table + "\n*COLUMN*: " + self.col + "\n" + err_to_string(self.type) 
 
 class Daudit:
 
@@ -11,7 +29,6 @@ class Daudit:
         self.db_conn = sql.get_connection(config_name)
         self.cols = self.db_conn.get_columns(self.table_name)
         # self.db_conn.create_nulls(self.table_name)
-        self.run_audit()
 
     def fetch_null_profile(self, num_rows: int):
         try:
@@ -44,7 +61,7 @@ class Daudit:
             return True
         return False
 
-    def run_audit(self):
+    async def run_audit(self):
         null_profile = self.fetch_null_profile(50000)
 
         HARDCODE_START_DATE = datetime.datetime(2019, 6, 1, 0, 0, 0)
@@ -57,11 +74,10 @@ class Daudit:
 
         profile_dict = {col: (data[0], data[1]) for col, data in null_profile.iterrows()}
 
+        errs = []
         for col, null_count, total in new_null_proportions:
             if self.is_null_count_anomalous(null_count, total, profile_dict[col][0], profile_dict[col][1]):
-                # SEND SLACK
-                print(col, "in table", self.table_name, "has an unexpected number of nulls.")
+                # Add to list of errors
+                errs.append(DataError(self.table_name, col, ErrorType.NULL_ROWS)) 
 
-
-d = Daudit('NYC311Data', 'demo')
-
+        return errs

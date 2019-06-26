@@ -11,11 +11,14 @@ import slack
 from message_builder import MessageType
 from message_builder import MessageBuilder
 
-from auditer import DataError
-from auditer import Auditer
+from daudit import DataError
+from daudit import Daudit
 
 import configparser
-from connector import Connector
+from mysql_integration.connector import Connector
+
+
+my_daudit = None
 
 """This file serves as an example for how to create the same app, but running asynchronously."""
 
@@ -45,7 +48,7 @@ async def set_config(args : str):
 # messages_sent = {"channel": {"user_id": MessageBuilder}}
 messages_sent = {}
 
-async def get_message(web_client: slack.WebClient, user_id: str, channel: str, msgType: MessageType, err = {}):
+async def get_message(web_client: slack.WebClient, user_id: str, channel: str, msgType: MessageType, errs = []):
     # Create a new message
     builder = MessageBuilder(channel, MessageType.HELP)
 
@@ -56,7 +59,7 @@ async def get_message(web_client: slack.WebClient, user_id: str, channel: str, m
     elif msgType == MessageType.HELP:
         message = builder.get_help_message()
     elif msgType == MessageType.ERROR:
-        message = builder.get_err_message(err)
+        message = builder.get_err_message(errs)
     elif msgType == MessageType.INVALID_ARGS:
         message = builder.get_invalid_args_message()
     elif msgType == MessageType.UNKNOWN:
@@ -112,11 +115,10 @@ async def message(**payload):
         command = commandNArgs[0]
         args = commandNArgs[2]
         if command == "run":
-            try :
-                auditer = Auditer("test", 10000)
-                await auditer.run()
-            except DataError as err:
-                return await get_message(web_client, user_id, channel_id, MessageType.ERROR, err)
+            errs = await my_daudit.run_audit()
+            print("DONE AUDIT")
+            if len(errs):
+                return await get_message(web_client, user_id, channel_id, MessageType.ERROR, errs)
 
         elif command == "help":
             return await get_message(web_client, user_id, channel_id, MessageType.HELP)
@@ -139,6 +141,9 @@ async def audit():
 
 
 async def main():
+    global my_daudit
+    my_daudit = Daudit('NYC311Data', 'demo')
+
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
     logger.addHandler(logging.StreamHandler())

@@ -1,5 +1,5 @@
 from enum import Enum
-from auditer import DataError
+from daudit import DataError
 
 class MessageType(Enum):
     RUN = 1
@@ -115,8 +115,10 @@ class MessageBuilder:
             ]
         }
 
-    def get_err_message(self, err : DataError): 
-        msg = err.to_str()
+    def get_err_message(self, errs):
+        msg = ""
+        for err in errs:
+            msg += err.to_str() + "\n"
         return {
                 "ts": self.timestamp,
                 "channel": self.channel,
