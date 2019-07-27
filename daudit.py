@@ -4,25 +4,9 @@ import pandas as pd
 from math import sqrt
 from enum import Enum
 
-class ErrorType(Enum):
-    NULL_ROWS = 1
-
-def err_to_string(errType) -> str:
-    if errType == ErrorType.NULL_ROWS:
-        return "We detected a change in the proportion of NULL cells"
-    return "An unknown error has occured"
-
-class DataError(Exception):
-    def __init__(self, table: str, col: str, typ: ErrorType):
-        self.table = table
-        self.col = col
-        self.type = typ
-
-    def to_str(self):
-        return "*TABLE*: " + self.table + "\n*COLUMN*: " + self.col + "\n" + err_to_string(self.type) 
-
+from message_builder import MessageType
+from message_builder import MessageBuilder
 class Daudit:
-
     def __init__(self, table_name, config_name="default"):
         self.table_name = table_name
         self.date_col = 'CreatedDate'
@@ -79,5 +63,7 @@ class Daudit:
             if self.is_null_count_anomalous(null_count, total, profile_dict[col][0], profile_dict[col][1]):
                 # Add to list of errors
                 errs.append(DataError(self.table_name, col, ErrorType.NULL_ROWS)) 
+
+
 
         return errs

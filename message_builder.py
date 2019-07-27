@@ -1,6 +1,6 @@
 from enum import Enum
-from daudit import DataError
 
+# This defines what type of message we are issuing.
 class MessageType(Enum):
     RUN = 1
     HELP = 2
@@ -8,133 +8,94 @@ class MessageType(Enum):
     INVALID_ARGS = 4
     UNKNOWN = 5
 
+# This defines the type of anomaly we have found in the data.
+class ErrorType(Enum):
+    NULL_ROWS = 1
+
+def err_to_string(errType) -> str:
+    if errType == ErrorType.NULL_ROWS:
+        return "We detected a change in the proportion of NULL cells"
+    return "An unknown error has occured"
+
+# Convenient way to pass anomaly information to the message builder.
+class DataError(Exception):
+    def __init__(self, table: str, col: str, typ: ErrorType):
+        self.table = table
+        self.col = col
+        self.type = typ
+
+    def to_str(self):
+        return "*TABLE*: " + self.table + "\n*COLUMN*: " + self.col + "\n" + err_to_string(self.type) 
+
+# All messages in slack are markdown format, this creates a section block.
+def create_block(message: str):
+    return {
+        "type": "section",
+        "text": {
+            "type": "mrkdwn",
+            "text": (
+                message
+            ),
+        },
+    }
+
+# All types of messages might have their own arbitrary data to display. For convenience they should all be
+# of type MessageData.
+class MessageData:
+    def to_markdown_block(self) -> str:
+        return create_block("Unimplemented to_markdown_block function")
+
+class RunMessageData(MessageData):
+    def __init__(self, table: str):
+        self.table = table
+    def to_markdown_block(self):
+        return create_block("Starting an audit on table " + str(table) + ". \nYou will be notified when the audit has completed.")
+
+class HelpMessageData(MessageData):
+    def to_markdown_block(self):
+        return  create_block("The following commands are supported by Daudit: \n\n" +
+                "*run* - Initiate a full audit. \n" +
+                "*set* <key> <value> - Initiate a full audit.")
+
+class ErrorMessageData(MessageData):
+    def __init__(self, errs):
+        self.errors = errs
+
+    def to_markdown_block(self):
+        msg = ""
+        for err in self.errors:
+            msg = msg + err.to_str() + "\n"
+        return create_block(msg)
+
+class InvalidArgsMessageData(MessageData):
+    def to_markdown_block(self):
+        return create_block("Invalid arguments, try typing 'help' for argument info. \n\n")
+
+
+class UnknownCommandMessageData(MessageData):
+    def to_markdown_block(self):
+        return create_block("Invalid command, try typing 'help'. \n\n")
+    
+
 class MessageBuilder:
-    WELCOME_BLOCK = {
-        "type": "section",
-        "text": {
-            "type": "mrkdwn",
-            "text": (
-                "Welcome to Daudit. I am your point of contact for all your data auditing needs.\n\n"
-            ),
-        },
-    }
-
-    RUN_BLOCK = {
-        "type": "section",
-        "text": {
-            "type": "mrkdwn",
-            "text": (
-                "Starting a test run.\n\n"
-            ),
-        },
-    }
-
-
-    HELP_BLOCK = {
-        "type": "section",
-        "text": {
-            "type": "mrkdwn",
-            "text": (
-                "The following commands are supported by Daudit: \n\n"
-                "*run* - Initiate a full audit. \n"
-                "*set* <key> <value> - Initiate a full audit."
-            ),
-        },
-    }
-
-    UNSUPPORTED_COMMAND_BLOCK = {
-        "type": "section",
-        "text": {
-            "type": "mrkdwn",
-            "text": (
-                "Invalid command, try typing 'help'. \n\n"
-            ),
-        },
-    }
-
-    INVALID_ARGS_BLOCK = {
-        "type": "section",
-        "text": {
-            "type": "mrkdwn",
-            "text": (
-                "Invalid arguments, try typing 'help' for argument info. \n\n"
-            ),
-        },
-    }
-
-
     DIVIDER_BLOCK = {"type": "divider"}
 
-    def __init__(self, channel, msgType):
+    def __init__(self, channel):
         self.channel = channel
         self.username = "daudit"
         self.timestamp = ""
-        self.message_type = msgType
 
-    def get_run_message(self):
+    # This is the function you call to get a message object to pass to the slack API.
+    def build(self, msgType: MessageType, messageData):
         return {
             "ts": self.timestamp,
             "channel": self.channel,
             "username": self.username,
             "blocks": [
-                self.RUN_BLOCK,
+                messageData.to_markdown_block(),
                 self.DIVIDER_BLOCK,
             ],
         }
-
-    def get_help_message(self):
-        return {
-            "ts": self.timestamp,
-            "channel": self.channel,
-            "username" : self.username,
-            "blocks": [
-                self.HELP_BLOCK,
-                self.DIVIDER_BLOCK,
-            ]
-        }
-
-    def get_unsupported_message(self):
-        return {
-            "ts": self.timestamp,
-            "channel": self.channel,
-            "username" : self.username,
-            "blocks": [
-                self.UNSUPPORTED_COMMAND_BLOCK,
-                self.DIVIDER_BLOCK,
-            ]
-        }
-
-    def get_invalid_args_message(self):
-        return {
-            "ts": self.timestamp,
-            "channel": self.channel,
-            "username" : self.username,
-            "blocks": [
-                self.INVALID_ARGS_BLOCK,
-                self.DIVIDER_BLOCK,
-            ]
-        }
-
-    def get_err_message(self, errs):
-        msg = ""
-        for err in errs:
-            msg += err.to_str() + "\n"
-        return {
-                "ts": self.timestamp,
-                "channel": self.channel,
-                "username": self.username,
-                "blocks": [{
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": (
-                            "*!!!! WARNING !!!!*\n"
-                            "" + msg
-                        ),
-                    },
-                }],
-        }
-
 
     @staticmethod
     def _get_task_block(text, information):

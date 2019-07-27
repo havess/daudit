@@ -9,9 +9,17 @@ import certifi
 import slack
 
 from message_builder import MessageType
-from message_builder import MessageBuilder
+from message_builder import MessageData
+from message_builder import RunMessageData
+from message_builder import HelpMessageData
+from message_builder import ErrorMessageData
+from message_builder import InvalidArgsMessageData
+from message_builder import UnknownCommandMessageData
 
-from daudit import DataError
+from message_builder import MessageType
+from message_builder import MessageBuilder
+from message_builder import DataError
+
 from daudit import Daudit
 
 import configparser
@@ -22,10 +30,11 @@ my_daudit = None
 
 """This file serves as an example for how to create the same app, but running asynchronously."""
 
-async def set_config(args : str):
+
+async def set_config(args: str):
     args = args.lower()
     configList = args.split(' ')
-    
+
     if len(configList) != 2:
         raise Exception()
 
@@ -43,38 +52,13 @@ async def set_config(args : str):
     with open("config.ini", "w") as configfile:
         config.write(configfile)
 
-    
-# For simplicity we'll store our app data in-memory with the following data structure.
-# messages_sent = {"channel": {"user_id": MessageBuilder}}
-messages_sent = {}
 
-async def get_message(web_client: slack.WebClient, user_id: str, channel: str, msgType: MessageType, errs = []):
-    # Create a new message
-    builder = MessageBuilder(channel, MessageType.HELP)
-
-    # Get the message payload.
-    message = {}
-    if msgType == MessageType.RUN:
-        message = builder.get_run_message()
-    elif msgType == MessageType.HELP:
-        message = builder.get_help_message()
-    elif msgType == MessageType.ERROR:
-        message = builder.get_err_message(errs)
-    elif msgType == MessageType.INVALID_ARGS:
-        message = builder.get_invalid_args_message()
-    elif msgType == MessageType.UNKNOWN:
-        message = builder.get_unsupported_message() 
-
+async def send_message(web_client: slack.WebClient, msg):
     # Post the message in Slack
-    response = await web_client.chat_postMessage(**message)
+    response = await web_client.chat_postMessage(**msg)
 
     # Capture the timestamp of the message we've just posted.
-    builder.timestamp = response["ts"]
-
-    # Store the message sent in messages_sent.
-    if channel not in messages_sent:
-        messages_sent[channel] = {}
-    messages_sent[channel][user_id] = builder
+    #builder.timestamp = response["ts"]
 
 
 # ================ Team Join Event =============== #
@@ -94,8 +78,11 @@ async def welcome_message(**payload):
     response = web_client.im_open(user_id)
     channel = response["channel"]["id"]
 
+    builder = MessageBuilder(channel)
+    msg = builder.build(MessageType.HELP, HelpMessageData())
+
     # Post the onboarding message.
-    await get_message(web_client, user_id, channel, MessageType.HELP)
+    await send_message(web_client, msg)
 
 
 # ============== Message Events ============= #
@@ -108,8 +95,9 @@ async def message(**payload):
     channel_id = data.get("channel")
     user_id = data.get("user")
     text = data.get("text")
+    builder = MessageBuilder(channel_id)
 
-    if text and not user_id == None:
+    if text and user_id is not None:
         lower = text.lower()
         commandNArgs = lower.partition(' ')
         command = commandNArgs[0]
@@ -118,26 +106,30 @@ async def message(**payload):
             errs = await my_daudit.run_audit()
             print("DONE AUDIT")
             if len(errs):
-                return await get_message(web_client, user_id, channel_id, MessageType.ERROR, errs)
+                msg = builder.build(MessageType.ERROR, ErrorMessageData(errs))
+                return await send_message(web_client, msg)
 
         elif command == "help":
-            return await get_message(web_client, user_id, channel_id, MessageType.HELP)
-        
+            msg = builder.build(MessageType.HELP, HelpMessageData())
+            return await send_message(web_client, msg)
+
         elif command == "set":
             try:
                 return await set_config(args)
-            except: 
-                return await get_message(web_client, user_id, channel_id, MessageType.INVALID_ARGS)
+            except BaseException:
+                msg = builder.build(MessageType.INVALID_ARGS, InvalidArgsMessageData())
+                return await send_message(web_client, msg)
 
         else:
-            return await get_message(web_client, user_id, channel_id, MessageType.UNKNOWN)
+            msg = builder.build(MessageType.UNKNOWN, UnknownCommandMessageData())
+            return await send_message(web_client, msg)
 
 
 async def audit():
     i = 0
     while i < 3:
         await asyncio.sleep(5)
-        i  = i + 1
+        i = i + 1
 
 
 async def main():
@@ -150,7 +142,6 @@ async def main():
     ssl_context = ssl_lib.create_default_context(cafile=certifi.where())
     loop = asyncio.get_event_loop()
 
-
     # SETUP DATABASE CONNECTOR
     config = configparser.ConfigParser()
     config.read("config.ini")
@@ -160,7 +151,7 @@ async def main():
     table = config["DEFAULT"]["TABLE"]
     host = config["DEFAULT"]["HOST"]
     #conn = Connector(host, database, user_name, password)
-    
+
     # INIT SLACK CLIENT
     slack_token = os.environ["SLACK_BOT_TOKEN"]
     rtm_client = slack.RTMClient(
@@ -168,9 +159,9 @@ async def main():
     )
 
     await asyncio.gather(
-        #audit(),
+        # audit(),
         rtm_client.start(),
-        )
+    )
 
 if __name__ == "__main__":
     try:
