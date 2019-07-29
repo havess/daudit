@@ -64,6 +64,4 @@ class Daudit:
                 # Add to list of errors
                 errs.append(DataError(self.table_name, col, ErrorType.NULL_ROWS)) 
 
-
-
         return errs
