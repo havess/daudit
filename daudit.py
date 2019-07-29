@@ -4,8 +4,8 @@ import pandas as pd
 from math import sqrt
 from enum import Enum
 
-from message_builder import MessageType
-from message_builder import MessageBuilder
+from message_builder import MessageType, MessageBuilder, DataError, ErrorType
+
 class Daudit:
     def __init__(self, table_name, config_name="default"):
         self.table_name = table_name
