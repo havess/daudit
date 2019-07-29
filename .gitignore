@@ -1,4 +1,5 @@
 __pycache__*
 tokens
 .DS_Store
+venv
 *.swp

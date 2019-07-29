@@ -4,10 +4,8 @@ import pandas as pd
 from math import sqrt
 from enum import Enum
 
-from message_builder import MessageType
-from message_builder import MessageBuilder
-from message_builder import DataError
-from message_builder import ErrorType
+from message_builder import MessageType, MessageBuilder, DataError, ErrorType
+
 class Daudit:
     def __init__(self, table_name, config_name="default"):
         self.table_name = table_name
@@ -65,7 +63,5 @@ class Daudit:
             if self.is_null_count_anomalous(null_count, total, profile_dict[col][0], profile_dict[col][1]):
                 # Add to list of errors
                 errs.append(DataError(self.table_name, col, ErrorType.NULL_ROWS)) 
-
-
 
         return errs

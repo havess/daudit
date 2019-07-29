@@ -2,3 +2,4 @@ slackclient>=2.0.0
 certifi
 mysql-connector-python
 pandas
+psycopg2
