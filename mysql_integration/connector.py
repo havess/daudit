@@ -52,6 +52,14 @@ class Connector:
         cursor.execute(query)
         cnx.commit()
         cnx.close()
+    
+    def reset_all(self, table_name: str):
+        """
+        Used to reset all columns of a table.
+        """
+        for c in self.get_columns(table_name):
+            self.reset_column(table_name, c)
+
 
     def add_nulls(self, table_name: str, col_name: str, start_date: datetime.date, end_date: datetime.date, null_prop: float):
         """

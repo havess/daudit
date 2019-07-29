@@ -2,6 +2,9 @@ import datetime
 import sys
 import mysql_integration.app as sql
 
+def reset_all(db_conn, table_name):
+    db_conn.reset_all(table_name)
+
 def reset_col(db_conn, table_name, col_name):
     db_conn.reset_column(table_name, col_name)
 
@@ -18,6 +21,12 @@ if __name__ == "__main__":
 
         _, cmd, config_name, table_name, col_name = sys.argv
         reset_col(db_conn, table_name, col_name)
+    elif sys.argv[1] == "RESET_ALL":
+        # Example Command:
+        # python3 null_script.py RESET_ALL DEMO NYC311Data
+
+        _, cmd, config_name, table_name = sys.argv
+        reset_all(db_conn, table_name)
     elif sys.argv[1] == "ADD_NULL":
         # Example Command:
         # python3 null_script.py ADD_NULL DEMO NYC311Data LocationType 0.5
