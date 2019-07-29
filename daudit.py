@@ -6,6 +6,8 @@ from enum import Enum
 
 from message_builder import MessageType
 from message_builder import MessageBuilder
+from message_builder import DataError
+from message_builder import ErrorType
 class Daudit:
     def __init__(self, table_name, config_name="default"):
         self.table_name = table_name
@@ -45,7 +47,7 @@ class Daudit:
             return True
         return False
 
-    async def run_audit(self):
+    def run_audit(self):
         null_profile = self.fetch_null_profile(50000)
 
         HARDCODE_START_DATE = datetime.datetime(2019, 6, 1, 0, 0, 0)

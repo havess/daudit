@@ -65,7 +65,31 @@ class ErrorMessageData(MessageData):
         msg = ""
         for err in self.errors:
             msg = msg + err.to_str() + "\n"
-        return create_block(msg)
+        button_attachment = {
+		"type": "actions",
+		"block_id": "actionblock789",
+		"elements": [
+			{
+                            "type": "button",
+                            "style": "primary",
+                            "text": {
+                                "type": "plain_text",
+                                "text": "I'm on it!"
+                            },
+			},
+                        {
+                            "type": "button",
+                            "style": "danger",
+                            "text": {
+                                "type": "plain_text",
+                                "text": "Not Useful"
+                            },
+			}
+
+		]
+	}
+        block =  [create_block(msg), button_attachment]
+        return block 
 
 class InvalidArgsMessageData(MessageData):
     def to_markdown_block(self):
@@ -91,10 +115,7 @@ class MessageBuilder:
             "ts": self.timestamp,
             "channel": self.channel,
             "username": self.username,
-            "blocks": [
-                messageData.to_markdown_block(),
-                self.DIVIDER_BLOCK,
-            ],
+            "blocks": messageData.to_markdown_block(),
         }
 
     @staticmethod

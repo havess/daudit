@@ -2,10 +2,10 @@ import os
 import time
 import threading
 import logging
-import asyncio
 import ssl as ssl_lib
 
 import certifi
+from slackeventsapi import SlackEventAdapter
 import slack
 
 from message_builder import MessageType
@@ -25,13 +25,15 @@ from daudit import Daudit
 import configparser
 from mysql_integration.connector import Connector
 
+# Remove when we go to production
+SLACK_SIGNING_SECRET = os.environ["SLACK_SIGNING_SECRET"]
+slack_events_adapter = SlackEventAdapter(SLACK_SIGNING_SECRET, endpoint="/slack/events")
+client = slack.WebClient(os.environ["SLACK_API_TOKEN"], timeout=30)
+
 
 my_daudit = None
 
-"""This file serves as an example for how to create the same app, but running asynchronously."""
-
-
-async def set_config(args: str):
+def set_config(args: str):
     args = args.lower()
     configList = args.split(' ')
 
@@ -53,86 +55,57 @@ async def set_config(args: str):
         config.write(configfile)
 
 
-async def send_message(web_client: slack.WebClient, msg):
+def send_message(msg):
     # Post the message in Slack
-    response = await web_client.chat_postMessage(**msg)
+    response = client.chat_postMessage(**msg)
 
     # Capture the timestamp of the message we've just posted.
     #builder.timestamp = response["ts"]
 
-
-# ================ Team Join Event =============== #
-# When the user first joins a team, the type of the event will be 'team_join'.
-@slack.RTMClient.run_on(event="team_join")
-async def welcome_message(**payload):
-    """Create and send an welcome message to new users. Save the
-    time stamp of this message so we can update this message in the future.
-    """
-    # Get WebClient so you can communicate back to Slack.
-    web_client = payload["web_client"]
-
-    # Get the id of the Slack user associated with the incoming event
-    user_id = payload["data"]["user"]["id"]
-
-    # Open a DM with the new user.
-    response = web_client.im_open(user_id)
-    channel = response["channel"]["id"]
-
-    builder = MessageBuilder(channel)
-    msg = builder.build(MessageType.HELP, HelpMessageData())
-
-    # Post the onboarding message.
-    await send_message(web_client, msg)
-
-
 # ============== Message Events ============= #
 # When a user sends a DM, the event type will be 'message'.
 # Here we'll link the message callback to the 'message' event.
-@slack.RTMClient.run_on(event="message")
-async def message(**payload):
-    data = payload["data"]
-    web_client = payload["web_client"]
+@slack_events_adapter.on(event="message")
+def handle_message(event_data):
+    data = event_data.get("event")
     channel_id = data.get("channel")
     user_id = data.get("user")
     text = data.get("text")
     builder = MessageBuilder(channel_id)
+    print("GOT MESSAGE")
+    print(event_data)
+    print(data)
 
     if text and user_id is not None:
+        print("THERE IS TEXT")
         lower = text.lower()
         commandNArgs = lower.partition(' ')
         command = commandNArgs[0]
         args = commandNArgs[2]
         if command == "run":
-            errs = await my_daudit.run_audit()
+            errs = my_daudit.run_audit()
             print("DONE AUDIT")
             if len(errs):
                 msg = builder.build(MessageType.ERROR, ErrorMessageData(errs))
-                return await send_message(web_client, msg)
+                return send_message(msg)
 
         elif command == "help":
             msg = builder.build(MessageType.HELP, HelpMessageData())
-            return await send_message(web_client, msg)
+            return send_message(msg)
 
         elif command == "set":
             try:
-                return await set_config(args)
+                return set_config(args)
             except BaseException:
                 msg = builder.build(MessageType.INVALID_ARGS, InvalidArgsMessageData())
-                return await send_message(web_client, msg)
+                return send_message(msg)
 
         else:
             msg = builder.build(MessageType.UNKNOWN, UnknownCommandMessageData())
-            return await send_message(web_client, msg)
+            return send_message(msg)
 
 
-async def audit():
-    i = 0
-    while i < 3:
-        await asyncio.sleep(5)
-        i = i + 1
-
-
-async def main():
+def main():
     global my_daudit
     my_daudit = Daudit('NYC311Data', 'demo')
 
@@ -140,7 +113,6 @@ async def main():
     logger.setLevel(logging.DEBUG)
     logger.addHandler(logging.StreamHandler())
     ssl_context = ssl_lib.create_default_context(cafile=certifi.where())
-    loop = asyncio.get_event_loop()
 
     # SETUP DATABASE CONNECTOR
     config = configparser.ConfigParser()
@@ -152,19 +124,11 @@ async def main():
     host = config["DEFAULT"]["HOST"]
     #conn = Connector(host, database, user_name, password)
 
-    # INIT SLACK CLIENT
-    slack_token = os.environ["SLACK_BOT_TOKEN"]
-    rtm_client = slack.RTMClient(
-        token=slack_token, ssl=ssl_context, run_async=True, loop=loop
-    )
-
-    await asyncio.gather(
-        # audit(),
-        rtm_client.start(),
-    )
+    slack_events_adapter.start(port=3000),
 
 if __name__ == "__main__":
     try:
-        asyncio.run(main())
+        print("RUNNING")
+        main()
     except KeyboardInterrupt:
         print("INTERRUPT")
