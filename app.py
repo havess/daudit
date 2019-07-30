@@ -90,6 +90,8 @@ def handle_message(event_data):
         command = commandNArgs[0]
         args = commandNArgs[2]
         if command == "run":
+            msg = builder.build(MessageType.RUN, RunMessageData("NYC311Data"))
+            send_message(msg)
             auditQueue.put(data)
 
         elif command == "help":

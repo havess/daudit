@@ -49,7 +49,7 @@ class RunMessageData(MessageData):
     def __init__(self, table: str):
         self.table = table
     def to_markdown_block(self):
-        return [create_block("Starting an audit on table " + str(table) + ". \nYou will be notified when the audit has completed.")]
+        return [create_block("Starting an audit on table " + str(self.table) + ". \nYou will be notified when the audit has completed.")]
 
 class HelpMessageData(MessageData):
     def to_markdown_block(self):
