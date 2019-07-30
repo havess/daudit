@@ -43,19 +43,19 @@ def create_block(message: str):
 # of type MessageData.
 class MessageData:
     def to_markdown_block(self) -> str:
-        return create_block("Unimplemented to_markdown_block function")
+        return [create_block("Unimplemented to_markdown_block function")]
 
 class RunMessageData(MessageData):
     def __init__(self, table: str):
         self.table = table
     def to_markdown_block(self):
-        return create_block("Starting an audit on table " + str(table) + ". \nYou will be notified when the audit has completed.")
+        return [create_block("Starting an audit on table " + str(table) + ". \nYou will be notified when the audit has completed.")]
 
 class HelpMessageData(MessageData):
     def to_markdown_block(self):
-        return  create_block("The following commands are supported by Daudit: \n\n" +
+        return  [create_block("The following commands are supported by Daudit: \n\n" +
                 "*run* - Initiate a full audit. \n" +
-                "*set* <key> <value> - Initiate a full audit.")
+                "*set* <key> <value> - Initiate a full audit.")]
 
 class ErrorMessageData(MessageData):
     def __init__(self, errs):
@@ -93,12 +93,12 @@ class ErrorMessageData(MessageData):
 
 class InvalidArgsMessageData(MessageData):
     def to_markdown_block(self):
-        return create_block("Invalid arguments, try typing 'help' for argument info. \n\n")
+        return [create_block("Invalid arguments, try typing 'help' for argument info. \n\n")]
 
 
 class UnknownCommandMessageData(MessageData):
     def to_markdown_block(self):
-        return create_block("Invalid command, try typing 'help'. \n\n")
+        return [create_block("Invalid command, try typing 'help'. \n\n")]
     
 
 class MessageBuilder:

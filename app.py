@@ -3,6 +3,8 @@ import time
 import threading
 import logging
 import ssl as ssl_lib
+import threading
+import queue
 
 import certifi
 from slackeventsapi import SlackEventAdapter
@@ -30,8 +32,10 @@ SLACK_SIGNING_SECRET = os.environ["SLACK_SIGNING_SECRET"]
 slack_events_adapter = SlackEventAdapter(SLACK_SIGNING_SECRET, endpoint="/slack/events")
 client = slack.WebClient(os.environ["SLACK_API_TOKEN"], timeout=30)
 
+auditQueue = queue.Queue()
 
 my_daudit = None
+g_worker = None
 
 def set_config(args: str):
     args = args.lower()
@@ -86,30 +90,43 @@ def handle_message(event_data):
         command = commandNArgs[0]
         args = commandNArgs[2]
         if command == "run":
-            errs = my_daudit.run_audit()
-            print("DONE AUDIT")
-            if len(errs):
-                msg = builder.build(MessageType.ERROR, ErrorMessageData(errs))
-                return send_message(msg)
+            auditQueue.put(data)
 
         elif command == "help":
             msg = builder.build(MessageType.HELP, HelpMessageData())
-            return send_message(msg)
+            send_message(msg)
 
         elif command == "set":
             try:
                 return set_config(args)
             except BaseException:
                 msg = builder.build(MessageType.INVALID_ARGS, InvalidArgsMessageData())
-                return send_message(msg)
+                send_message(msg)
 
         else:
             msg = builder.build(MessageType.UNKNOWN, UnknownCommandMessageData())
-            return send_message(msg)
+            send_message(msg)
+    return 200
+
+
+def worker_function(name):
+    while True:
+        while auditQueue.empty():
+            continue
+        event = auditQueue.get()
+        channel_id = event.get("channel")
+        builder = MessageBuilder(channel_id)
+        print("STARTING AUDIT")
+        errs = my_daudit.run_audit()
+        print("DONE AUDIT")
+        if len(errs):
+            msg = builder.build(MessageType.ERROR, ErrorMessageData(errs))
+            send_message(msg)
 
 
 def main():
     global my_daudit
+    global g_worker
     my_daudit = Daudit('NYC311Data', 'demo')
 
     logger = logging.getLogger()
@@ -127,6 +144,8 @@ def main():
     host = config["DEFAULT"]["HOST"]
     #conn = Connector(host, database, user_name, password)
 
+    g_worker = threading.Thread(target=worker_function, args=(1,))
+    g_worker.start()
     slack_events_adapter.start(port=3000),
 
 if __name__ == "__main__":
