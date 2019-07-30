@@ -5,22 +5,16 @@ import logging
 import ssl as ssl_lib
 import threading
 import queue
+import json
+
+from flask import request, make_response
 
 import certifi
 from slackeventsapi import SlackEventAdapter
 import slack
 
-from message_builder import MessageType
-from message_builder import MessageData
-from message_builder import RunMessageData
-from message_builder import HelpMessageData
-from message_builder import ErrorMessageData
-from message_builder import InvalidArgsMessageData
-from message_builder import UnknownCommandMessageData
-
-from message_builder import MessageType
-from message_builder import MessageBuilder
-from message_builder import DataError
+from message_builder import MessageType, MessageData, RunMessageData, HelpMessageData, ErrorMessageData, InvalidArgsMessageData, \
+        UnknownCommandMessageData, MessageBuilder, DataError
 
 from daudit import Daudit
 
@@ -109,6 +103,27 @@ def handle_message(event_data):
             msg = builder.build(MessageType.UNKNOWN, UnknownCommandMessageData())
             send_message(msg)
     return 200
+
+@slack_events_adapter.on(event="action")
+def action_handler(action_data):
+    print("A button was clicked!")
+    if action_data.get("action_id") == "OnIt":
+        print("IM ON IT")
+    elif action_data.get("action_id") == "NotUseful":
+        print("NOT USEFUL")
+    return make_response("", 200)
+
+@slack_events_adapter.server.route("/button", methods=["GET", "POST"])
+def respond():
+    """
+    This route listens for incoming message button actions from Slack.
+    """
+    slack_payload = json.loads(request.form.get("payload"))
+    # get the value of the button press
+    action_value = slack_payload["actions"][0].get("value")
+    # handle the action
+    print(slack_payload)
+    return action_handler(slack_payload.get("actions")[0])
 
 
 def worker_function(name):

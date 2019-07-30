@@ -67,7 +67,7 @@ class ErrorMessageData(MessageData):
             msg = msg + err.to_str() + "\n"
         button_attachment = {
 		"type": "actions",
-		"block_id": "actionblock789",
+		"block_id": "error_message_buttons",
 		"elements": [
 			{
                             "type": "button",
@@ -76,6 +76,7 @@ class ErrorMessageData(MessageData):
                                 "type": "plain_text",
                                 "text": "I'm on it!"
                             },
+                            "action_id": "OnIt"
 			},
                         {
                             "type": "button",
@@ -84,6 +85,7 @@ class ErrorMessageData(MessageData):
                                 "type": "plain_text",
                                 "text": "Not Useful"
                             },
+                            "action_id": "NotUseful"
 			}
 
 		]
