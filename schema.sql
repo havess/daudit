@@ -15,6 +15,8 @@ create table if not exists notification_threshold ( \
     id integer not null, \
     table_id integer not null, \
     notification_id integer not null, \
+    useful_count integer not null, \
+    not_useful_count integer not null, \
     null_proportion_threshold integer not null,
     primary key (id), \
     foreign key (table_id) references monitored_tables(table_id), \
