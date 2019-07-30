@@ -69,15 +69,18 @@ def send_message(msg):
 def handle_message(event_data):
     data = event_data.get("event")
     channel_id = data.get("channel")
-    user_id = data.get("user")
+    user_id = data.get("username")
     text = data.get("text")
     builder = MessageBuilder(channel_id)
     print("GOT MESSAGE")
     print(event_data)
     print(data)
+    print("USERNAME")
+    print(user_id)
+    print(user_id == "daudit")
 
-    if text and user_id is not None:
-        print("THERE IS TEXT")
+    if text and data.get("subtype") is None:
+        print("\n\nSENDING MESSAGE\n\n")
         lower = text.lower()
         commandNArgs = lower.partition(' ')
         command = commandNArgs[0]
