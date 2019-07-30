@@ -3,3 +3,4 @@ certifi
 mysql-connector-python
 pandas
 psycopg2
+slackeventsapi
