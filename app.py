@@ -135,13 +135,13 @@ def main():
     ssl_context = ssl_lib.create_default_context(cafile=certifi.where())
 
     # SETUP DATABASE CONNECTOR
-    config = configparser.ConfigParser()
-    config.read("config.ini")
-    user_name = config["DEFAULT"]["USER_NAME"]
-    password = config["DEFAULT"]["PASSWORD"]
-    database = config["DEFAULT"]["DATABASE"]
-    table = config["DEFAULT"]["TABLE"]
-    host = config["DEFAULT"]["HOST"]
+    # config = configparser.ConfigParser()
+    # config.read("config.ini")
+    # user_name = config["DEFAULT"]["USER_NAME"]
+    # password = config["DEFAULT"]["PASSWORD"]
+    # database = config["DEFAULT"]["DATABASE"]
+    # table = config["DEFAULT"]["TABLE"]
+    # host = config["DEFAULT"]["HOST"]
     #conn = Connector(host, database, user_name, password)
 
     g_worker = threading.Thread(target=worker_function, args=(1,))
