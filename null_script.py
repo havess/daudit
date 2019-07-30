@@ -17,19 +17,19 @@ if __name__ == "__main__":
 
     if sys.argv[1] == "RESET":
         # Example Command:
-        # python null_script.py RESET DEMO NYC311Data LocationType
+        # python null_script.py RESET demo NYC311Data LocationType
 
         _, cmd, config_name, table_name, col_name = sys.argv
         reset_col(db_conn, table_name, col_name)
     elif sys.argv[1] == "RESET_ALL":
         # Example Command:
-        # python null_script.py RESET_ALL DEMO NYC311Data
+        # python null_script.py RESET_ALL demo NYC311Data
 
         _, cmd, config_name, table_name = sys.argv
         reset_all(db_conn, table_name)
     elif sys.argv[1] == "ADD_NULL":
         # Example Command:
-        # python null_script.py ADD_NULL DEMO NYC311Data LocationType 0.5
+        # python null_script.py ADD_NULL demo NYC311Data LocationType 0.5
 
         _, cmd, config_name, table_name, col_name, null_prop = sys.argv
         HARDCODE_START_DATE = datetime.datetime(2019, 6, 1, 0, 0, 0)
