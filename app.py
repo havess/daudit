@@ -8,6 +8,7 @@ import queue
 import json
 
 from flask import request, make_response
+from enum import Enum
 
 import certifi
 from slackeventsapi import SlackEventAdapter
@@ -25,6 +26,12 @@ from mysql_integration.connector import Connector
 SLACK_SIGNING_SECRET = os.environ["SLACK_SIGNING_SECRET"]
 slack_events_adapter = SlackEventAdapter(SLACK_SIGNING_SECRET, endpoint="/slack/events")
 client = slack.WebClient(os.environ["SLACK_API_TOKEN"], timeout=30)
+
+
+class WorkType(Enum):
+    RUN_AUDIT = 1
+    INCREASE_CONF_INTERVAL = 2
+    ACKNOWLEDGE_ERROR = 3
 
 auditQueue = queue.Queue()
 
@@ -86,7 +93,7 @@ def handle_message(event_data):
         if command == "run":
             msg = builder.build(MessageType.RUN, RunMessageData("NYC311Data"))
             send_message(msg)
-            auditQueue.put(data)
+            auditQueue.put((WorkType.RUN_AUDIT, data))
 
         elif command == "help":
             msg = builder.build(MessageType.HELP, HelpMessageData())
@@ -108,9 +115,9 @@ def handle_message(event_data):
 def action_handler(action_data):
     print("A button was clicked!")
     if action_data.get("action_id") == "OnIt":
-        print("IM ON IT")
+        auditQueue.put((WorkType.ACKNOWLEDGE_ERROR, action_data))
     elif action_data.get("action_id") == "NotUseful":
-        print("NOT USEFUL")
+        auditQueue.put((WorkType.INCREASE_CONF_INTERVAL, action_data))
     return make_response("", 200)
 
 @slack_events_adapter.server.route("/button", methods=["GET", "POST"])
@@ -130,15 +137,20 @@ def worker_function(name):
     while True:
         while auditQueue.empty():
             continue
-        event = auditQueue.get()
-        channel_id = event.get("channel")
-        builder = MessageBuilder(channel_id)
-        print("STARTING AUDIT")
-        errs = my_daudit.run_audit()
-        print("DONE AUDIT")
-        if len(errs):
-            msg = builder.build(MessageType.ERROR, ErrorMessageData(errs))
-            send_message(msg)
+        workType, data = auditQueue.get()
+        if workType == WorkType.RUN_AUDIT:
+            channel_id = data.get("channel")
+            builder = MessageBuilder(channel_id)
+            print("STARTING AUDIT")
+            errs = my_daudit.run_audit()
+            print("DONE AUDIT")
+            if len(errs):
+                msg = builder.build(MessageType.ERROR, ErrorMessageData(errs))
+                send_message(msg)
+        elif workType == WorkType.ACKNOWLEDGE_ERROR:
+            print("Acknowledgeing error")
+        elif workType == WorkType.INCREASE_CONF_INTERVAL:
+            print("Increasing confidence interval")
 
 
 def main():
