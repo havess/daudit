@@ -1,24 +1,28 @@
-drop table if exists monitored_tables;
-drop table if exists column_null_profiles;
-drop table if exists notification_type;
-drop table if exists notification_threshold;
-drop table if exists alert_table;
-
 create table if not exists monitored_tables ( \
     table_id integer not null, \
-    table_name varchar(32) not null, \
+    table_name varchar(100) not null, \
     database_name varchar(32) not null, \
     created_date datetime not null, \
     is_activated boolean not null, \
     primary key(table_id));
 
-create table if not exists column_null_profiles ( \
-    column_id integer not null, \
-    column_name varchar(100) not null, \
+create table if not exists profile_table ( \
+    profile_id integer not null, \
     table_id integer not null, \
     num_rows integer not null, \
-    expected_nulls_per_num_rows integer not null, \
-    primary key (column_id), \
+    created_date datetime not null, \
+    expiry_date datetime not null, \
+    primary key (profile_id), \
+    foreign key (table_id) references monitored_tables(table_id));
+
+create table if not exists null_profile_table ( \
+    profile_id integer not null, \
+    table_id integer not null, \
+    column_id integer not null, \
+    column_name varchar(100), not null, \
+    num_null_rows integer not null, \
+    primary key (profile_id), \
+    foreign key (profile_id) references profile_table(profile_id), \
     foreign key (table_id) references monitored_tables(table_id));
 
 create table if not exists notification_type ( \
@@ -50,8 +54,8 @@ create table if not exists alert_table ( \
     foreign key (notification_id) references notification_type(notification_id));
 
 -- Populate tables for NYC data table
-insert into monitored_tables (table_id, table_name, database_name, is_activated)
-    values (1, 'NYC311Data', 'daudit', TRUE);
+insert into monitored_tables (table_id, table_name, database_name, created_date, is_activated)
+    values (1, 'NYC311Data', 'daudit', '2019-04-30 01:00:00', TRUE);
 
 insert into column_null_profiles (column_id, column_name, table_id, num_rows, expected_nulls_per_num_rows)
     values
