@@ -23,22 +23,26 @@ create table if not exists profile_table ( \
     foreign key (table_id) references monitored_tables(table_id));
 
 create table if not exists null_profile_table ( \
+    id integer not null, \
     profile_id integer not null, \
     table_id integer not null, \
     column_id integer not null, \
     num_null_rows integer not null, \
-    primary key (profile_id), \
+    primary key (id), \
     foreign key (profile_id) references profile_table(profile_id), \
     foreign key (table_id) references monitored_tables(table_id), \
     foreign key (column_id) references column_table(column_id));
 
 create table if not exists binary_relations_profile_table ( \
+    id integer not null, \
     profile_id integer not null, \
     table_id integer not null, \
     column_id_a integer not null, \
     column_id_b integer not null, \
-    a_to_b_ratio decimal not null, \
-    primary key (profile_id), \
+    a_content varchar(100) not null. \
+    b_content varchar(100) not null, \
+    count integer not null, \
+    primary key (id), \
     foreign key (profile_id) references profile_table(profile_id), \
     foreign key (table_id) references monitored_tables(table_id), \
     foreign key (column_id_a) references column_table(column_id), \
