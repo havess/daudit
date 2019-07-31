@@ -65,7 +65,6 @@ class Daudit:
 
         profile_dict = {col: (data[0], data[1]) for col, data in null_profile.iterrows()}
 
-        errs = []
         for col, null_count, total in new_null_proportions:
             if self.is_null_count_anomalous(null_count, total, profile_dict[col][0], profile_dict[col][1]):
                 # Add to list of errors
@@ -74,15 +73,31 @@ class Daudit:
     def perform_binary_relationship_checks(self, profile_id: int, errs: list):
         binary_relationship_profile = self.fetch_binary_relationship_profile(50000)
 
-    def fetch_profile_id(self):
-        profile_id = self.db_conn_internal.get_profile_id(self.table_name, datetime.datetime.now())
+
+    def generate_null_profile(self, profile_id: int):
+        pass
+    
+    def generate_binary_relationship_profile(self, profile_id: int):
+        pass
+
+    def generate_profile(self):
+        profile_id = self.db_conn_internal.get_profile_id(self.table_name)
+
+        if len(profile_id):
+            return profile_id[0]
+
+        self.db_conn_internal.create_profile(self.table_name, 50000)
+        profile_id = self.db_conn_internal.get_profile_id(self.table_name)[0]
+
+        self.generate_null_profile(profile_id)
+        self.generate_binary_relationship_profile(profile_id)
+
         return profile_id
 
     def run_audit(self):
-        print("\nRUNNING AUDIT\n")
         errs = []
-        profile_id = self.fetch_profile_id()
-        
+        profile_id = self.generate_profile()
+
         self.perform_null_checks(profile_id, errs)
         self.perform_binary_relationship_checks(profile_id, errs)
 
