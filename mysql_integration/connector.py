@@ -165,3 +165,23 @@ class Connector:
        
         cnx.close()
         return res
+
+
+    def get_profile_id(self, table_name: str, current_date: datetime.date):
+        cnx = mysql.connector.connect(**self.config)
+        cursor = cnx.cursor() 
+        current_date = current_date.strftime('%Y-%m-%d %H:%M:%S')
+
+        query = """
+            SELECT profile_id 
+            FROM profile_table
+            WHERE 
+                table_id = '%s' AND
+                expiry_date > '%s';
+        """ % (table_name, current_date)
+
+        cursor.execute(query)
+
+        res = [c[0] for c in cursor.fetchall()]
+        cnx.close()
+        return res

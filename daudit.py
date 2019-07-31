@@ -3,6 +3,8 @@ import mysql_integration.app as sql
 import pandas as pd
 from math import sqrt
 from enum import Enum
+from mysql_integration.connector import Connector
+
 
 from message_builder import MessageType, MessageBuilder, DataError, ErrorType
 
@@ -11,6 +13,7 @@ class Daudit:
         self.table_name = table_name
         self.date_col = 'CreatedDate'
         self.db_conn = sql.get_connection(config_name)
+        self.db_conn_internal = Connector('127.0.0.1', 'daudit_internal', 'root', 'rootroot')
         self.cols = self.db_conn.get_columns(self.table_name)
         # self.db_conn.create_nulls(self.table_name)
 
@@ -30,6 +33,10 @@ class Daudit:
             df.to_csv("profiles/" + self.table_name + ".csv", index=False)
             return df
 
+    def fetch_binary_relationship_profile(self, num_rows: int):
+        pass
+
+
     def fetch_null_proportions_for_date_range(self, start_date, end_date):
         return self.db_conn.get_null_propportions_for_date_range(self.table_name, self.date_col, start_date, end_date)       
     
@@ -45,7 +52,7 @@ class Daudit:
             return True
         return False
 
-    def run_audit(self):
+    def perform_null_checks(self, errs):
         null_profile = self.fetch_null_profile(50000)
 
         HARDCODE_START_DATE = datetime.datetime(2019, 6, 1, 0, 0, 0)
@@ -63,5 +70,19 @@ class Daudit:
             if self.is_null_count_anomalous(null_count, total, profile_dict[col][0], profile_dict[col][1]):
                 # Add to list of errors
                 errs.append(DataError(self.table_name, col, ErrorType.NULL_ROWS)) 
+
+    def perform_binary_relationship_checks(self, errs):
+        binary_relationship_profile = self.fetch_binary_relationship_profile(50000)
+
+    def fetch_profile_id(self):
+        profile_id = self.db_conn_internal.get_profile_id(self.table_name, datetime.datetime.now())
+
+    def run_audit(self):
+        
+        errs = []
+        profile_id = self.fetch_profile_id()
+        
+        self.perform_null_checks(profile_id, errs)
+        self.perform_binary_relationship_checks(profile_id, errs)
 
         return errs
