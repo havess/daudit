@@ -52,7 +52,7 @@ class Daudit:
             return True
         return False
 
-    def perform_null_checks(self, errs):
+    def perform_null_checks(self, profile_id: int, errs: list):
         null_profile = self.fetch_null_profile(50000)
 
         HARDCODE_START_DATE = datetime.datetime(2019, 6, 1, 0, 0, 0)
@@ -71,14 +71,15 @@ class Daudit:
                 # Add to list of errors
                 errs.append(DataError(self.table_name, col, ErrorType.NULL_ROWS)) 
 
-    def perform_binary_relationship_checks(self, errs):
+    def perform_binary_relationship_checks(self, profile_id: int, errs: list):
         binary_relationship_profile = self.fetch_binary_relationship_profile(50000)
 
     def fetch_profile_id(self):
         profile_id = self.db_conn_internal.get_profile_id(self.table_name, datetime.datetime.now())
+        return profile_id
 
     def run_audit(self):
-        
+        print("\nRUNNING AUDIT\n")
         errs = []
         profile_id = self.fetch_profile_id()
         
