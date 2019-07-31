@@ -6,6 +6,13 @@ create table if not exists monitored_tables ( \
     is_activated boolean not null, \
     primary key(table_id));
 
+create table if not exists column_table ( \
+    column_id integer not null, \
+    column_name varchar(32) not null, \
+    table_id integer not null, \
+    primary key (column_id), \
+    foreign key (table_id) references monitored_tables(table_id));
+
 create table if not exists profile_table ( \
     profile_id integer not null, \
     table_id integer not null, \
@@ -19,11 +26,23 @@ create table if not exists null_profile_table ( \
     profile_id integer not null, \
     table_id integer not null, \
     column_id integer not null, \
-    column_name varchar(100), not null, \
     num_null_rows integer not null, \
     primary key (profile_id), \
     foreign key (profile_id) references profile_table(profile_id), \
-    foreign key (table_id) references monitored_tables(table_id));
+    foreign key (table_id) references monitored_tables(table_id), \
+    foreign key (column_id) references column_table(column_id));
+
+create table if not exists binary_relations_profile_table ( \
+    profile_id integer not null, \
+    table_id integer not null, \
+    column_id_a integer not null, \
+    column_id_b integer not null, \
+    a_to_b_ratio decimal not null, \
+    primary key (profile_id), \
+    foreign key (profile_id) references profile_table(profile_id), \
+    foreign key (table_id) references monitored_tables(table_id), \
+    foreign key (column_id_a) references column_table(column_id), \
+    foreign key (column_id_b) references column_table(column_id));
 
 create table if not exists notification_type ( \
     notification_id integer not null, \
@@ -36,7 +55,7 @@ create table if not exists notification_threshold ( \
     notification_id integer not null, \
     useful_count integer not null, \
     not_useful_count integer not null, \
-    null_proportion_threshold integer not null,
+    confidence_interval decimal not null default 95.0, \
     primary key (id), \
     foreign key (table_id) references monitored_tables(table_id), \
     foreign key (notification_id) references notification_type(notification_id));
