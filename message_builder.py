@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import Enum, IntEnum
 
 # This defines what type of message we are issuing.
 class MessageType(Enum):
@@ -9,7 +9,7 @@ class MessageType(Enum):
     UNKNOWN = 5
 
 # This defines the type of anomaly we have found in the data.
-class ErrorType(Enum):
+class ErrorType(IntEnum):
     NULL_ROWS = 1
 
 def err_to_string(errType) -> str:
@@ -39,6 +39,12 @@ def create_block(message: str):
         },
     }
 
+
+def create_button_id(dataError):
+    return str(int(dataError.type)) + "-0-0"
+
+
+
 # All types of messages might have their own arbitrary data to display. For convenience they should all be
 # of type MessageData.
 class MessageData:
@@ -63,34 +69,35 @@ class ErrorMessageData(MessageData):
 
     def to_markdown_block(self):
         msg = ""
+        block = []
         for err in self.errors:
             msg = msg + err.to_str() + "\n"
-        button_attachment = {
-		"type": "actions",
-		"block_id": "error_message_buttons",
-		"elements": [
-			{
-                            "type": "button",
-                            "style": "primary",
-                            "text": {
-                                "type": "plain_text",
-                                "text": "I'm on it!"
+            button_attachment = {
+                    "type": "actions",
+                    "block_id": create_button_id(err),
+                    "elements": [
+                            {
+                                "type": "button",
+                                "style": "primary",
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "I'm on it!"
+                                },
+                                "action_id": "OnIt"
                             },
-                            "action_id": "OnIt"
-			},
-                        {
-                            "type": "button",
-                            "style": "danger",
-                            "text": {
-                                "type": "plain_text",
-                                "text": "Not Useful"
-                            },
-                            "action_id": "NotUseful"
-			}
+                            {
+                                "type": "button",
+                                "style": "danger",
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "Not Useful"
+                                },
+                                "action_id": "NotUseful"
+                            }
 
-		]
-	}
-        block =  [create_block(msg), button_attachment]
+                    ]
+            }
+            block +=  [create_block(msg), button_attachment]
         return block 
 
 class InvalidArgsMessageData(MessageData):
