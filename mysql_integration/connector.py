@@ -165,3 +165,62 @@ class Connector:
        
         cnx.close()
         return res
+
+    def get_table_id(self, table_name: str):
+        cnx = mysql.connector.connect(**self.config)
+        cursor = cnx.cursor() 
+
+        query = """
+            SELECT table_id 
+            FROM monitored_tables
+            WHERE 
+                table_name = '%s';
+        """ % (table_name)
+
+        cursor.execute(query)
+
+        res = cursor.fetchall()[0][0]
+        cnx.close()
+        return res 
+
+    def create_profile(self, table_name: str, num_rows: int):
+        cnx = mysql.connector.connect(**self.config)
+        cursor = cnx.cursor() 
+        current_date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+        # Expiry date is 30 days in the future:
+        expiry_date = (datetime.datetime.now() + datetime.timedelta(30)).strftime('%Y-%m-%d %H:%M:%S')
+        table_id = self.get_table_id(table_name)
+
+        query = """
+            INSERT INTO profile_table (table_id, num_rows, created_date, expiry_date)
+            VALUES (%s, %s, '%s', '%s')
+        """ % (table_id, str(num_rows), current_date, expiry_date)
+
+        print(query)
+
+        cursor.execute(query)
+        cnx.commit()
+        cnx.close()
+    
+    def get_profile_id(self, table_name: str):
+        cnx = mysql.connector.connect(**self.config)
+        cursor = cnx.cursor() 
+        current_date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        table_id = self.get_table_id(table_name)
+
+        query = """
+            SELECT profile_id 
+            FROM profile_table
+            WHERE 
+                table_id = %s AND
+                expiry_date > '%s';
+        """ % (table_id, current_date)
+
+        print(query)
+        cursor.execute(query)
+
+        res = [c[0] for c in cursor.fetchall()]
+        print(res)
+        cnx.close()
+        return res
