@@ -18,7 +18,7 @@ class Daudit:
         # self.db_conn.create_nulls(self.table_name)
 
     def validate_table_name(self, table_name: int):
-        exists = self.get_table_id(table_name)
+        exists = self.db_conn_internal.validate_table_id(table_name)
         if (exists):
             return True
         return False
@@ -145,13 +145,15 @@ class Daudit:
                     table_id = self.get_table_id(self.table_name)
                     column_id_a = self.db_conn_internal.get_column_id(col_a, table_id)
                     columb_id_b = self.db_conn_internal.get_column_id(col_b, table_id)
-                    alert_id = self.get_alert_id(table_id, int(ErrorType.NULL_ROWS), column_id_a, columb_id_b)
+                    alert_id = self.get_alert_id(table_id, int(ErrorType.BINARY_RELATIONS_ANOMALY), column_id_a, columb_id_b)
                     if len(alert_id) == 0:
                         # add error to alert table
-                        self.create_alert(table_id, int(ErrorType.NULL_ROWS), column_id_a, columb_id_b)
-                        alert_id = self.get_alert_id(table_id, int(ErrorType.NULL_ROWS), column_id_a, columb_id_b)
+                        self.create_alert(table_id, int(ErrorType.BINARY_RELATIONS_ANOMALY), column_id_a, columb_id_b)
+                        alert_id = self.get_alert_id(table_id, int(ErrorType.BINARY_RELATIONS_ANOMALY), column_id_a, columb_id_b)
                     errs.append(DataError(alert_id[0], self.table_name, [col_a, col_b], ErrorType.BINARY_RELATIONS_ANOMALY,
                         "We detected a binary relationship anomaly with values (" + a + " " + b + ")"))
+                    
+                    break
 
     def generate_null_profile(self, profile_id: int, num_rows: int):
         HARDCODE_DATETIME = datetime.datetime(2019, 6, 1, 0, 0, 0)

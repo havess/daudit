@@ -203,6 +203,22 @@ class Connector:
         cnx.close()
         return res
 
+    def validate_table_id(self, table_name: str):
+        cnx = mysql.connector.connect(**self.config)
+        cursor = cnx.cursor()
+
+        query = """
+            SELECT table_id
+            FROM monitored_tables
+            WHERE
+                table_name = '%s';
+        """ % (table_name)
+
+        cursor.execute(query)
+        res = len(cursor.fetchall())
+        cnx.close()
+        return res
+
     def create_column_id(self, col_name: str, table_id: int):
         cnx = mysql.connector.connect(**self.config)
         cursor = cnx.cursor()

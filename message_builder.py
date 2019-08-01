@@ -70,10 +70,9 @@ class ErrorMessageData(MessageData):
         self.errors = errs
 
     def to_markdown_block(self):
-        msg = ""
         block = []
         for err in self.errors:
-            msg = msg + err.to_str() + "\n"
+            msg = err.to_str() + "\n"
             button_attachment = {
                     "type": "actions",
                     "block_id": create_button_id(err),
