@@ -1,8 +1,7 @@
 import datetime
 import mysql_integration.app as sql
-import pandas as pd
+import scipy.stats as st
 from math import sqrt
-from enum import Enum
 from mysql_integration.connector import Connector
 
 
@@ -17,35 +16,25 @@ class Daudit:
         self.cols = self.db_conn.get_columns(self.table_name)
         # self.db_conn.create_nulls(self.table_name)
 
-    def fetch_null_profile(self, num_rows: int):
-        try:
-            df = pd.read_csv("profiles/" + self.table_name + ".csv", index_col=0)
-            return df
-        except:
-            HARDCODE_DATETIME = datetime.datetime(2019, 6, 1, 0, 0, 0)
-            null_proportions = self.db_conn.get_null_profile(
-                self.table_name, 
-                self.date_col, 
-                HARDCODE_DATETIME, 
-                num_rows
-            )
-            df = pd.DataFrame(null_proportions)
-            df.to_csv("profiles/" + self.table_name + ".csv", index=False)
-            return df
+    def is_null_count_anomalous(self, new_null_count: int, new_total_count: int, profile_null_count: int, profile_total_count: int, col_name: str):
 
-    def fetch_binary_relationship_profile(self, num_rows: int):
-        pass
+        useful_counts = self.db_conn_internal.get_useful_counts(1, self.table_name, col_name)
+        
+        if len(useful_counts) == 0:
+            useful_count, not_useful_count = 0, 0
+        else:
+            useful_count, not_useful_count = useful_counts[0]
 
-
-    def fetch_null_proportions_for_date_range(self, start_date, end_date):
-        return self.db_conn.get_null_propportions_for_date_range(self.table_name, self.date_col, start_date, end_date)       
-    
-
-    def is_null_count_anomalous(self, new_null_count: int, new_total_count: int, profile_null_count: int, profile_total_count: int):
         profile_prob_null = profile_null_count/profile_total_count
         total_prob_null = (profile_null_count + new_null_count)/(profile_total_count + new_total_count)
 
-        z = 1.96  # 95% confidence interval
+        conf_interval_padding = 1 - 2*(1/2)**(not_useful_count + 1)
+        conf_interval = 0.95 + 0.05 * conf_interval_padding
+
+        z = st.norm.ppf( (1 - conf_interval)/2 + conf_interval )
+
+        print(col_name, z, conf_interval)
+        
         conf_interval = z * sqrt(profile_prob_null * (1 - profile_prob_null)/profile_total_count)
 
         if total_prob_null > profile_prob_null + conf_interval:
@@ -53,31 +42,50 @@ class Daudit:
         return False
 
     def perform_null_checks(self, profile_id: int, errs: list):
-        null_profile = self.fetch_null_profile(50000)
-
         HARDCODE_START_DATE = datetime.datetime(2019, 6, 1, 0, 0, 0)
         HARDCODE_END_DATE = datetime.datetime(2019, 6, 2, 0, 0, 0)
 
-        new_null_proportions = self.fetch_null_proportions_for_date_range(
+        new_null_proportions = self.db_conn.get_null_proportions_for_date_range(
+            self.table_name, 
+            self.date_col, 
             HARDCODE_START_DATE, 
             HARDCODE_END_DATE
+        ) 
+
+        new_proportions_dict = {col: (null_count, total) for col, null_count, total in new_null_proportions}
+
+        null_profile = self.db_conn_internal.get_null_profile(
+            profile_id,
+            self.table_name
         )
 
-        profile_dict = {col: (data[0], data[1]) for col, data in null_profile.iterrows()}
-
-        for col, null_count, total in new_null_proportions:
-            if self.is_null_count_anomalous(null_count, total, profile_dict[col][0], profile_dict[col][1]):
+        for col, null_count, total in null_profile:
+            if self.is_null_count_anomalous(new_proportions_dict[col][0], new_proportions_dict[col][1], \
+                null_count, total, col):
                 # Add to list of errors
-                errs.append(DataError(self.table_name, col, ErrorType.NULL_ROWS)) 
+                errs.append(DataError(self.table_name, col, ErrorType.NULL_ROWS))
 
     def perform_binary_relationship_checks(self, profile_id: int, errs: list):
-        binary_relationship_profile = self.fetch_binary_relationship_profile(50000)
-
-
-    def generate_null_profile(self, profile_id: int):
         pass
-    
-    def generate_binary_relationship_profile(self, profile_id: int):
+
+
+    def generate_null_profile(self, profile_id: int, num_rows: int):
+        HARDCODE_DATETIME = datetime.datetime(2019, 6, 1, 0, 0, 0)
+        null_proportions = self.db_conn.get_null_profile(
+            self.table_name, 
+            self.date_col, 
+            HARDCODE_DATETIME, 
+            num_rows
+        )
+
+        self.db_conn_internal.create_null_profile(
+            profile_id,
+            num_rows,
+            self.table_name,
+            null_proportions
+        )    
+
+    def generate_binary_relationship_profile(self, profile_id: int, num_rows: int):
         pass
 
     def generate_profile(self):
@@ -86,11 +94,13 @@ class Daudit:
         if len(profile_id):
             return profile_id[0]
 
-        self.db_conn_internal.create_profile(self.table_name, 50000)
+        num_rows = 50000
+
+        self.db_conn_internal.create_profile(self.table_name, num_rows)
         profile_id = self.db_conn_internal.get_profile_id(self.table_name)[0]
 
-        self.generate_null_profile(profile_id)
-        self.generate_binary_relationship_profile(profile_id)
+        self.generate_null_profile(profile_id, num_rows)
+        self.generate_binary_relationship_profile(profile_id, num_rows)
 
         return profile_id
 
