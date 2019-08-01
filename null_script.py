@@ -41,7 +41,7 @@ if __name__ == "__main__":
     
     elif sys.argv[1] == "ADD_PAIRED":
         # Example Command:
-        # python3 paired_script.py ADD_PAIRED demo NYC311Data City BRONX ComplaintType Noise 0.1
+        # python null_script.py ADD_PAIRED demo NYC311Data City BRONX ComplaintType Noise 0.5
 
         _, cmd, config_name, table_name, col0_name, col0_val, col1_name, col1_val, paired_prop = sys.argv
         introduce_paired_data(db_conn, table_name, col0_name, col0_val, col1_name, col1_val, paired_prop)
