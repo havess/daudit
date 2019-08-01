@@ -11,6 +11,7 @@ class MessageType(Enum):
 # This defines the type of anomaly we have found in the data.
 class ErrorType(IntEnum):
     NULL_ROWS = 1
+    BINARY_RELATIONS_ANOMALY = 2
 
 def err_to_string(errType) -> str:
     if errType == ErrorType.NULL_ROWS:
@@ -19,13 +20,14 @@ def err_to_string(errType) -> str:
 
 # Convenient way to pass anomaly information to the message builder.
 class DataError(Exception):
-    def __init__(self, table: str, col: str, typ: ErrorType):
+    def __init__(self, alert_id: int, table: str, col: str, typ: ErrorType):
+        self.alert_id = alert_id
         self.table = table
         self.col = col
         self.type = typ
 
     def to_str(self):
-        return "*TABLE*: " + self.table + "\n*COLUMN*: " + self.col + "\n" + err_to_string(self.type) 
+        return "*TABLE*: " + self.table + "\n*COLUMN*: " + self.col + "\n" + err_to_string(self.type)
 
 # All messages in slack are markdown format, this creates a section block.
 def create_block(message: str):
@@ -41,7 +43,7 @@ def create_block(message: str):
 
 
 def create_button_id(dataError):
-    return str(int(dataError.type)) + "-0-0"
+    return str(int(dataError.alert_id))
 
 
 
@@ -98,7 +100,7 @@ class ErrorMessageData(MessageData):
                     ]
             }
             block +=  [create_block(msg), button_attachment]
-        return block 
+        return block
 
 class InvalidArgsMessageData(MessageData):
     def to_markdown_block(self):
@@ -108,7 +110,7 @@ class InvalidArgsMessageData(MessageData):
 class UnknownCommandMessageData(MessageData):
     def to_markdown_block(self):
         return [create_block("Invalid command, try typing 'help'. \n\n")]
-    
+
 
 class MessageBuilder:
     DIVIDER_BLOCK = {"type": "divider"}

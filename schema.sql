@@ -1,3 +1,12 @@
+drop table if exists alert_table;
+drop table if exists notification_threshold;
+drop table if exists notification_type;
+drop table if exists binary_relations_profile_table;
+drop table if exists null_profile_table;
+drop table if exists profile_table;
+drop table if exists column_table;
+drop table if exists monitored_tables;
+
 create table if not exists monitored_tables ( \
     table_id integer not null auto_increment, \
     table_name varchar(100) not null, \
@@ -58,8 +67,8 @@ create table if not exists notification_threshold ( \
     table_id integer not null, \
     notification_id integer not null, \
     column_id integer not null, \
-    useful_count integer not null, \
-    not_useful_count integer not null, \
+    useful_count integer not null default 0, \
+    not_useful_count integer not null default 0, \
     confidence_interval decimal not null default 95.0, \
     primary key (id), \
     foreign key (table_id) references monitored_tables(table_id), \
@@ -72,8 +81,10 @@ create table if not exists alert_table ( \
     notification_id integer not null, \
     start_date datetime not null, \
     end_date datetime, \
+    column_id_a integer not null, \
+    column_id_b integer, \
     is_acknowledged boolean not null, \
-    is_acknowledged_by_user boolean not null, \
+    acknowledged_by_user varchar(32), \
     primary key (id), \
     foreign key (table_id) references monitored_tables(table_id), \
     foreign key (notification_id) references notification_type(notification_id));
@@ -83,3 +94,6 @@ insert into notification_type (notification_id, notification_type_description)
     values
         (1, "NULL_PROPORTION_ANOMALY"),
         (2, "BINARY_RELATIONS_ANOMALY");
+
+insert into monitored_tables(table_name, database_name, created_date, is_activated)
+    VALUES ("NYC311Data", "daudit", current_timestamp, 1);

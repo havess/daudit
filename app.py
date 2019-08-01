@@ -39,7 +39,7 @@ my_daudit = None
 g_worker = None
 
 def set_config(args: str):
-    args = args.lower()
+    args = args.text()
     configList = args.split(' ')
 
     if len(configList) != 2:
@@ -86,14 +86,17 @@ def handle_message(event_data):
 
     if text and data.get("subtype") is None:
         print("\n\nSENDING MESSAGE\n\n")
-        lower = text.lower()
-        commandNArgs = lower.partition(' ')
+        commandNArgs = text.partition(' ')
         command = commandNArgs[0]
         args = commandNArgs[2]
         if command == "run":
-            msg = builder.build(MessageType.RUN, RunMessageData("NYC311Data"))
-            send_message(msg)
-            auditQueue.put((WorkType.RUN_AUDIT, data))
+            if my_daudit.validate_table_name(args):
+                msg = builder.build(MessageType.RUN, RunMessageData(args))
+                send_message(msg)
+                auditQueue.put((WorkType.RUN_AUDIT, data))
+            else:
+                msg = builder.build(MessageType.INVALID_ARGS, InvalidArgsMessageData())
+                send_message(msg)
 
         elif command == "help":
             msg = builder.build(MessageType.HELP, HelpMessageData())
@@ -162,16 +165,6 @@ def main():
     logger.setLevel(logging.DEBUG)
     logger.addHandler(logging.StreamHandler())
     ssl_context = ssl_lib.create_default_context(cafile=certifi.where())
-
-    # SETUP DATABASE CONNECTOR
-    # config = configparser.ConfigParser()
-    # config.read("config.ini")
-    # user_name = config["DEFAULT"]["USER_NAME"]
-    # password = config["DEFAULT"]["PASSWORD"]
-    # database = config["DEFAULT"]["DATABASE"]
-    # table = config["DEFAULT"]["TABLE"]
-    # host = config["DEFAULT"]["HOST"]
-    #conn = Connector(host, database, user_name, password)
 
     g_worker = threading.Thread(target=worker_function, args=(1,))
     g_worker.start()

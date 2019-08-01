@@ -3,6 +3,7 @@ import mysql_integration.app as sql
 import scipy.stats as st
 from math import sqrt
 from mysql_integration.connector import Connector
+from message_builder import ErrorType
 
 
 from message_builder import MessageType, MessageBuilder, DataError, ErrorType
@@ -16,15 +17,20 @@ class Daudit:
         self.cols = self.db_conn.get_columns(self.table_name)
         # self.db_conn.create_nulls(self.table_name)
 
+    def validate_table_name(self, table_name: int):
+        exists = self.get_table_id(table_name)
+        if (exists):
+            return True
+        return False
+
     def is_null_count_anomalous(self, new_null_count: int, new_total_count: int, profile_null_count: int, profile_total_count: int, col_name: str):
 
         useful_counts = self.db_conn_internal.get_useful_counts(1, self.table_name, col_name)
-        
+
         if len(useful_counts) == 0:
             useful_count, not_useful_count = 0, 0
         else:
             useful_count, not_useful_count = useful_counts[0]
-
         profile_prob_null = profile_null_count/profile_total_count
         total_prob_null = (profile_null_count + new_null_count)/(profile_total_count + new_total_count)
 
@@ -34,7 +40,7 @@ class Daudit:
         z = st.norm.ppf( (1 - conf_interval)/2 + conf_interval )
 
         print(col_name, z, conf_interval)
-        
+
         conf_interval = z * sqrt(profile_prob_null * (1 - profile_prob_null)/profile_total_count)
 
         if total_prob_null > profile_prob_null + conf_interval:
@@ -46,11 +52,11 @@ class Daudit:
         HARDCODE_END_DATE = datetime.datetime(2019, 6, 2, 0, 0, 0)
 
         new_null_proportions = self.db_conn.get_null_proportions_for_date_range(
-            self.table_name, 
-            self.date_col, 
-            HARDCODE_START_DATE, 
+            self.table_name,
+            self.date_col,
+            HARDCODE_START_DATE,
             HARDCODE_END_DATE
-        ) 
+        )
 
         new_proportions_dict = {col: (null_count, total) for col, null_count, total in new_null_proportions}
 
@@ -63,7 +69,14 @@ class Daudit:
             if self.is_null_count_anomalous(new_proportions_dict[col][0], new_proportions_dict[col][1], \
                 null_count, total, col):
                 # Add to list of errors
-                errs.append(DataError(self.table_name, col, ErrorType.NULL_ROWS))
+                table_id = self.get_table_id(self.table_name)
+                column_id = self.get_column_id(col)
+                alert_id = self.get_alert_id(self.table_name, int(ErrorType.NULL_ROWS), column_id)
+                if not alert_id:
+                    # add error to alert table
+                    self.create_alert(table_id, int(ErrorType.NULL_ROWS), column_id)
+                    alert_id = self.get_alert_id(self.table_name, int(ErrorType.NULL_ROWS), column_id)
+                errs.append(DataError(alert_id, elf.table_name, col, ErrorType.NULL_ROWS))
 
     def perform_binary_relationship_checks(self, profile_id: int, errs: list):
         pass
@@ -72,9 +85,9 @@ class Daudit:
     def generate_null_profile(self, profile_id: int, num_rows: int):
         HARDCODE_DATETIME = datetime.datetime(2019, 6, 1, 0, 0, 0)
         null_proportions = self.db_conn.get_null_profile(
-            self.table_name, 
-            self.date_col, 
-            HARDCODE_DATETIME, 
+            self.table_name,
+            self.date_col,
+            HARDCODE_DATETIME,
             num_rows
         )
 
@@ -83,7 +96,7 @@ class Daudit:
             num_rows,
             self.table_name,
             null_proportions
-        )    
+        )
 
     def generate_binary_relationship_profile(self, profile_id: int, num_rows: int):
         pass
@@ -103,6 +116,21 @@ class Daudit:
         self.generate_binary_relationship_profile(profile_id, num_rows)
 
         return profile_id
+
+    def get_column_id(self, column_name: str):
+        column_id = self.db_conn_internal.get_column_id(column_name)
+        return column_id
+
+    def get_table_id(self, table_name: str):
+        table_id = self.db_conn_internal.get_table_id(table_name)
+        return table_id
+
+    def get_alert_id(self, table_id: id, notification_id: int, col_a: int, col_b = -1):
+        alert_id = self.db_conn_internal.get_alert_id(table_id, notification_id, col_a, col_b)
+        return alert_id
+
+    def create_alert(self, table_id: int, notification_id: int, col_a: int, col_b = -1):
+        self.db_conn_internal.create_alert(table_id, notification_id, col_a, col_b)
 
     def run_audit(self):
         errs = []
