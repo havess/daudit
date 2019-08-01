@@ -157,6 +157,34 @@ class Daudit:
     def create_alert(self, table_id: int, notification_id: int, col_a: int, col_b = -1):
         self.db_conn_internal.create_alert(table_id, notification_id, col_a, col_b)
 
+    def acknowledge_alert(self, alert_id: int, user_name: str):
+        self.db_conn_internal.acknowledge_alert(alert_id, user_name)
+        alert_res = self.db_conn_internal.get_alert_info(alert_id)
+        table_id = alert_res[0][0]
+        notification_id = alert_res[0][1]
+        column_id_a = alert_res[0][4]
+        notif_res = self.db_conn_internal.get_threshold_info(table_id, notification_id, column_id_a)
+        if not notif_res:
+            self.db_conn_internal.insert_notification_threshold(table_id, notification_id, column_id_a, 1, 0)
+        else:
+            id = notif_res[0][0]
+            useful_count = notif_res[0][1]
+            self.db_conn_internal.update_notification_useful_count(id, useful_count+1)
+
+    def alert_not_useful(self, alert_id: int):
+        alert_res = self.db_conn_internal.get_alert_info(alert_id)
+        table_id = alert_res[0][0]
+        notification_id = alert_res[0][1]
+        column_id_a = alert_res[0][4]
+        notif_res = self.db_conn_internal.get_threshold_info(table_id, notification_id, column_id_a)
+        if not notif_res:
+            self.db_conn_internal.insert_notification_threshold(table_id, notification_id, column_id_a, 0, 1)
+        else:
+            id = notif_res[0][0]
+            not_useful_count = notif_res[0][2]
+            self.db_conn_internal.update_notification_not_useful_count(id, not_useful_count+1)
+
+
     def run_audit(self):
         errs = []
         profile_id = self.generate_profile()

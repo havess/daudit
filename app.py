@@ -115,12 +115,13 @@ def handle_message(event_data):
     return 200
 
 @slack_events_adapter.on(event="action")
-def action_handler(action_data):
+def action_handler(payload):
     print("A button was clicked!")
+    action_data = payload.get("actions")[0]
     if action_data.get("action_id") == "OnIt":
-        auditQueue.put((WorkType.ACKNOWLEDGE_ERROR, action_data))
+        auditQueue.put((WorkType.ACKNOWLEDGE_ERROR, payload))
     elif action_data.get("action_id") == "NotUseful":
-        auditQueue.put((WorkType.INCREASE_CONF_INTERVAL, action_data))
+        auditQueue.put((WorkType.INCREASE_CONF_INTERVAL, payload))
     return make_response("", 200)
 
 @slack_events_adapter.server.route("/button", methods=["GET", "POST"])
@@ -133,7 +134,7 @@ def respond():
     action_value = slack_payload["actions"][0].get("value")
     # handle the action
     print(slack_payload)
-    return action_handler(slack_payload.get("actions")[0])
+    return action_handler(slack_payload)
 
 
 def worker_function(name):
@@ -151,8 +152,17 @@ def worker_function(name):
                 msg = builder.build(MessageType.ERROR, ErrorMessageData(errs))
                 send_message(msg)
         elif workType == WorkType.ACKNOWLEDGE_ERROR:
+            print(data)
+            action_data = data.get("actions")[0]
+            alert_id = action_data.get("block_id")
+            user_name = data.get("user").get("username")
+            my_daudit.acknowledge_alert(alert_id, user_name)
             print("Acknowledgeing error")
         elif workType == WorkType.INCREASE_CONF_INTERVAL:
+            print(data)
+            action_data = data.get("actions")[0]
+            alert_id = action_data.get("block_id")
+            my_daudit.alert_not_useful(alert_id)
             print("Increasing confidence interval")
 
 

@@ -85,15 +85,15 @@ class Connector:
 
     def add_paired_data(self, table_name: str,  col0_name: str, col0_val: str, col1_name: str, col1_val : str, paired_prop: float):
         """
-        Add nulls to a column in a table in the rows between start_date and end_date. 
+        Add nulls to a column in a table in the rows between start_date and end_date.
         """
         cnx = mysql.connector.connect(**self.config)
         cursor = cnx.cursor()
-        
+
         query = """
             UPDATE %s
             SET %s = "%s", %s = "%s"
-            WHERE 
+            WHERE
                 RAND() < %s;
         """ % (table_name, col0_name, col0_val, col1_name, col1_val, str(paired_prop))
 
@@ -387,21 +387,21 @@ class Connector:
                 if col_a == 'ComplaintType' and col_b == 'City' and col_a != date_col and col_b != date_col:
                     query = """
                         WITH q1 AS (
-                            SELECT 
+                            SELECT
                                 %s,
                                 %s,
                                 %s,
-                                row_number() OVER (ORDER BY %s) AS rn 
+                                row_number() OVER (ORDER BY %s) AS rn
                             FROM %s
                         ), q2 AS (
-                            SELECT 
-                                MAX(rn) AS max_rn 
-                            FROM q1 
+                            SELECT
+                                MAX(rn) AS max_rn
+                            FROM q1
                             WHERE %s < '%s'
                         )
-                        SELECT 
-                            %s, 
-                            %s, 
+                        SELECT
+                            %s,
+                            %s,
                             COUNT(*)
                         FROM q1, q2
                         WHERE
@@ -409,7 +409,7 @@ class Connector:
                             AND max_rn > rn
                         GROUP BY
                             %s, %s
-                        HAVING 
+                        HAVING
                             COUNT(*) > 100;
                     """ % (date_col, col_a, col_b, date_col, table_name, date_col, sql_date, col_a, col_b, str(num_rows), col_a, col_b)
 
@@ -417,15 +417,15 @@ class Connector:
 
                     for a, b, count in cursor.fetchall():
                         res.append((col_a, col_b, a, b, count, num_rows))
-    
+
         cnx.close()
         return res
-    
+
     def create_internal_binary_relationship_profile(self, profile_id: int, num_rows: int, table_name: str, binary_relation_data: list):
         cnx = mysql.connector.connect(**self.config)
         cursor = cnx.cursor()
         table_id = self.get_table_id(table_name)
-    
+
         for col_a, col_b, a_content, b_content, count, _ in binary_relation_data:
             col_id_a = self.get_column_id(col_a, table_id)
             col_id_b = self.get_column_id(col_b, table_id)
@@ -453,16 +453,16 @@ class Connector:
                 # TODO: Remove this hardcoding and fix query
                 if col_a == 'ComplaintType' and col_b == 'City' and col_a != date_col and col_b != date_col:
                     query = """
-                        SELECT 
-                            %s, 
-                            %s, 
+                        SELECT
+                            %s,
+                            %s,
                             COUNT(*)
                         FROM q1, q2
                         WHERE
                             %s BETWEEN '%s' AND '%s'
                         GROUP BY
                             %s, %s
-                        HAVING 
+                        HAVING
                             COUNT(*) > 100;
                     """ % (col_a, col_b, date_col, start_date, end_date, col_a, col_b)
 
@@ -505,3 +505,71 @@ class Connector:
         res = [c for c in cursor.fetchall()]
         cnx.close()
         return res
+
+    def acknowledge_alert(self, alert_id:int, user_name:str):
+        cnx = mysql.connector.connect(**self.config)
+        cursor = cnx.cursor()
+        query = """
+            update alert_table
+            set is_acknowledged=1, acknowledged_by_user='%s'
+            where id=%s
+            """ % (user_name, alert_id)
+        print(query)
+        cursor.execute(query)
+        cnx.commit()
+        cnx.close()
+
+    def get_alert_info(self, alert_id: int):
+        cnx = mysql.connector.connect(**self.config)
+        cursor = cnx.cursor()
+        query = """
+            select table_id, notification_id, start_date, end_date, column_id_a, column_id_b, is_acknowledged, acknowledged_by_user
+            from alert_table where id =%s
+            """ %(alert_id)
+        cursor.execute(query)
+        res = [c for c in cursor.fetchall()]
+        cnx.close()
+        return res
+
+    def get_threshold_info(self, table_id: int, notification_id: int, column_id: int):
+        cnx = mysql.connector.connect(**self.config)
+        cursor = cnx.cursor()
+        query = """
+            select id, useful_count, not_useful_count from notification_threshold where
+            table_id = %s and notification_id = %s and column_id = %s
+        """ %(table_id, notification_id, column_id)
+        cursor.execute(query)
+        res = [c for c in cursor.fetchall()]
+        cnx.close()
+        return res
+
+    def insert_notification_threshold(self, table_id: int, notification_id: int, column_id: int, useful_count: int, not_useful_count: int):
+        cnx = mysql.connector.connect(**self.config)
+        cursor = cnx.cursor()
+        query = """
+            insert into notification_threshold(table_id, notification_id, column_id, useful_count, not_useful_count)
+            values (%s, %s, %s, %s, %s)
+        """ %(table_id, notification_id, column_id, useful_count, not_useful_count)
+        cursor.execute(query)
+        cnx.commit()
+        cnx.close()
+
+    def update_notification_useful_count(self, id: int, useful_count: int):
+        cnx = mysql.connector.connect(**self.config)
+        cursor = cnx.cursor()
+        query = """
+            update notification_threshold set useful_count = %s where id=%s
+        """ %(useful_count, id)
+        cursor.execute(query)
+        cnx.commit()
+        cnx.close()
+
+    def update_notification_not_useful_count(self, id:int, not_useful_count:int):
+        cnx = mysql.connector.connect(**self.config)
+        cursor = cnx.cursor()
+        query = """
+            update notification_threshold set not_useful_count = %s where id=%s
+        """ %(not_useful_count, id)
+        cursor.execute(query)
+        cnx.commit()
+        cnx.close()
