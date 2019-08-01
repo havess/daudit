@@ -139,7 +139,7 @@ class Connector:
         cnx.close()
         return res
 
-    def get_null_propportions_for_date_range(self, table_name: str, date_col: str, start_date: datetime.date, end_date: datetime.date):
+    def get_null_proportions_for_date_range(self, table_name: str, date_col: str, start_date: datetime.date, end_date: datetime.date):
         cnx = mysql.connector.connect(**self.config)
         cursor = cnx.cursor()
         start_date = start_date.strftime('%Y-%m-%d %H:%M:%S')
@@ -181,7 +181,43 @@ class Connector:
 
         res = cursor.fetchall()[0][0]
         cnx.close()
-        return res 
+        return res
+
+    def create_column_id(self, col_name: str, table_id: int):
+        cnx = mysql.connector.connect(**self.config)
+        cursor = cnx.cursor() 
+
+        query = """
+            INSERT INTO column_table (column_name, table_id)
+            VALUES ('%s', %s)
+        """ % (col_name, table_id)
+
+        cursor.execute(query)
+        cnx.commit()
+        cnx.close()
+
+    def get_column_id(self, col_name: str, table_id: int):
+        cnx = mysql.connector.connect(**self.config)
+        cursor = cnx.cursor() 
+
+        query = """
+            SELECT column_id 
+            FROM column_table
+            WHERE 
+                column_name = '%s' AND
+                table_id = %s;
+        """ % (col_name, table_id)
+
+        cursor.execute(query)
+        
+        try:
+            res = cursor.fetchall()[0][0]
+            cnx.close()
+            return res
+        except:
+            cnx.close()
+            self.create_column_id(col_name, table_id)
+            return self.get_column_id(col_name, table_id)
 
     def create_profile(self, table_name: str, num_rows: int):
         cnx = mysql.connector.connect(**self.config)
@@ -196,8 +232,6 @@ class Connector:
             INSERT INTO profile_table (table_id, num_rows, created_date, expiry_date)
             VALUES (%s, %s, '%s', '%s')
         """ % (table_id, str(num_rows), current_date, expiry_date)
-
-        print(query)
 
         cursor.execute(query)
         cnx.commit()
@@ -217,10 +251,74 @@ class Connector:
                 expiry_date > '%s';
         """ % (table_id, current_date)
 
-        print(query)
         cursor.execute(query)
-
         res = [c[0] for c in cursor.fetchall()]
-        print(res)
         cnx.close()
         return res
+
+    def create_null_profile(self, profile_id: int, num_rows: int, table_name: str, null_data: list):
+        cnx = mysql.connector.connect(**self.config)
+        cursor = cnx.cursor() 
+        table_id = self.get_table_id(table_name)
+
+        for col_name, num_null_rows, _ in null_data:
+            col_id = self.get_column_id(col_name, table_id)
+            query = """
+                INSERT INTO null_profile_table (profile_id, table_id, column_id, num_null_rows)
+                VALUES (%s, %s, %s, %s)
+            """ % (profile_id, table_id, col_id, num_null_rows)
+            cursor.execute(query)
+
+        cnx.commit()
+        cnx.close()
+
+    def get_null_profile(self, profile_id: int, table_name: str):
+        cnx = mysql.connector.connect(**self.config)
+        cursor = cnx.cursor() 
+
+        query = """
+            SELECT 
+                c.column_name, 
+                np.num_null_rows, 
+                p.num_rows 
+            FROM 
+                null_profile_table np
+            JOIN 
+                monitored_tables m ON m.table_id = np.table_id
+            JOIN 
+                column_table c ON c.column_id = np.column_id
+            JOIN 
+                profile_table p ON p.profile_id = np.profile_id
+            WHERE 
+                table_name = '%s' AND 
+                np.profile_id = %s;
+        """ % (table_name, profile_id)
+
+        cursor.execute(query)
+        res = [c for c in cursor.fetchall()]
+        cnx.close()
+        return res
+
+    def get_useful_counts(self, notification_id: int, table_name: str, col_name: str):
+        cnx = mysql.connector.connect(**self.config)
+        cursor = cnx.cursor() 
+
+        query = """
+            SELECT 
+                useful_count,
+                not_useful_count
+            FROM 
+                notification_threshold nt
+            JOIN 
+                monitored_tables m ON m.table_id = nt.table_id
+            JOIN 
+                column_table c ON c.column_id = nt.column_id
+            WHERE 
+                m.table_name = '%s' AND 
+                c.column_name = '%s';
+        """ % (table_name, col_name)
+
+        cursor.execute(query)
+        res = [c for c in cursor.fetchall()]
+        cnx.close()
+        return res      
