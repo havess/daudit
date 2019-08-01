@@ -446,6 +446,16 @@ class Connector:
         cols = self.get_columns(table_name)
         res = []
 
+        query = """
+            SELECT 
+                COUNT(*)
+            FROM %s
+            WHERE
+                %s BETWEEN '%s' AND '%s';
+        """ % (table_name, date_col, start_date, end_date)
+        cursor.execute(query)
+        num_rows = cursor.fetchall()[0][0]
+
         for x in range(len(cols)):
             for y in range(x + 1, len(cols)):
                 col_a = cols[x]
@@ -457,14 +467,12 @@ class Connector:
                             %s,
                             %s,
                             COUNT(*)
-                        FROM q1, q2
+                        FROM %s
                         WHERE
                             %s BETWEEN '%s' AND '%s'
                         GROUP BY
-                            %s, %s
-                        HAVING
-                            COUNT(*) > 100;
-                    """ % (col_a, col_b, date_col, start_date, end_date, col_a, col_b)
+                            %s, %s;
+                    """ % (col_a, col_b, table_name, date_col, start_date, end_date, col_a, col_b)
 
                     cursor.execute(query)
 
