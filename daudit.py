@@ -81,7 +81,6 @@ class Daudit:
     def perform_binary_relationship_checks(self, profile_id: int, errs: list):
         pass
 
-
     def generate_null_profile(self, profile_id: int, num_rows: int):
         HARDCODE_DATETIME = datetime.datetime(2019, 6, 1, 0, 0, 0)
         null_proportions = self.db_conn.get_null_profile(
@@ -99,7 +98,20 @@ class Daudit:
         )
 
     def generate_binary_relationship_profile(self, profile_id: int, num_rows: int):
-        pass
+        HARDCODE_DATETIME = datetime.datetime(2019, 6, 1, 0, 0, 0)
+        binary_relationship_profile = self.db_conn.get_binary_relationship_profile(
+            self.table_name,
+            self.date_col,
+            HARDCODE_DATETIME,
+            num_rows
+        )
+
+        self.db_conn_internal.create_internal_binary_relationship_profile(
+            profile_id,
+            num_rows,
+            self.table_name,
+            binary_relationship_profile
+        )
 
     def generate_profile(self):
         profile_id = self.db_conn_internal.get_profile_id(self.table_name)

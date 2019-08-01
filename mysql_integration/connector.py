@@ -371,3 +371,42 @@ class Connector:
         res = [c for c in cursor.fetchall()]
         cnx.close()
         return res
+
+    def get_binary_relationship_profile(self, table_name: str, date_col: str, date: datetime.date, num_rows: int):
+        cnx = mysql.connector.connect(**self.config)
+        cursor = cnx.cursor()
+        sql_date = date.strftime('%Y-%m-%d %H:%M:%S')
+        cols = self.get_columns(table_name)
+        res = []
+
+        for c in cols:
+            if c != date_col:
+                query = """
+                    WITH q1 AS (
+                        SELECT 
+                            %s,
+                            %s,
+                            row_number() OVER (ORDER BY %s) AS rn 
+                        FROM %s
+                    ), q2 AS (
+                        SELECT 
+                            MAX(rn) AS max_rn 
+                        FROM q1 
+                        WHERE %s < '%s'
+                    )
+                    SELECT COUNT(*)
+                    FROM q1, q2
+                    WHERE 
+                        CAST(max_rn AS SIGNED) - CAST(rn AS SIGNED) < %s
+                        AND max_rn > rn
+                        AND %s IS NULL;
+                """ % (date_col, c, date_col, table_name, date_col, sql_date, str(num_rows), c)
+                # cursor.execute(query)
+                # res.append((c, cursor.fetchall()[0][0], num_rows))
+                print(query)
+    
+        cnx.close()
+        return res
+    
+    def create_internal_binary_relationship_profile(self, profile_id: int, num_rows: int, table_name: str, null_data: list):
+        pass
