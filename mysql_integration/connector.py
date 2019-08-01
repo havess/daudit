@@ -82,6 +82,27 @@ class Connector:
         cnx.commit()
         cnx.close()
 
+
+    def add_paired_data(self, table_name: str,  col0_name: str, col0_val: str, col1_name: str, col1_val : str, paired_prop: float):
+        """
+        Add nulls to a column in a table in the rows between start_date and end_date. 
+        """
+        cnx = mysql.connector.connect(**self.config)
+        cursor = cnx.cursor()
+        
+        query = """
+            UPDATE %s
+            SET %s = "%s", %s = "%s"
+            WHERE 
+                RAND() < %s;
+        """ % (table_name, col0_name, col0_val, col1_name, col1_val, str(paired_prop))
+
+        cursor.execute(query)
+        cnx.commit()
+        cnx.close()
+
+
+
     def create_nulls(self, table_name: str):
         """
         Just used to clean data and convert empty strings to NULL.
