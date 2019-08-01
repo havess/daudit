@@ -100,6 +100,8 @@ class Connector:
                 AND CreatedDate BETWEEN '%s' AND '%s';
         """ % (table_name, col0_name, col0_val, col1_name, col1_val, str(paired_prop), start_date, end_date)
 
+        print(query)
+        
         cursor.execute(query)
         cnx.commit()
         cnx.close()

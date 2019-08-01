@@ -32,7 +32,7 @@ if __name__ == "__main__":
         reset_all(db_conn, table_name)
     elif sys.argv[1] == "ADD_NULL":
         # Example Command:
-        # python null_script.py ADD_NULL demo NYC311Data LocationType 0.5
+        # python null_script.py ADD_NULL demo NYC311Data LocationType 0.1
 
         _, cmd, config_name, table_name, col_name, null_prop = sys.argv
         HARDCODE_START_DATE = datetime.datetime(2019, 6, 1, 0, 0, 0)
@@ -41,7 +41,7 @@ if __name__ == "__main__":
     
     elif sys.argv[1] == "ADD_PAIRED":
         # Example Command:
-        # python null_script.py ADD_PAIRED demo NYC311Data City BRONX ComplaintType Noise 0.5
+        # python null_script.py ADD_PAIRED demo NYC311Data City BROOKLYN ComplaintType 'Noise - Residential' 1.0
 
         _, cmd, config_name, table_name, col0_name, col0_val, col1_name, col1_val, paired_prop = sys.argv
         HARDCODE_START_DATE = datetime.datetime(2019, 6, 1, 0, 0, 0)
