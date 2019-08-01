@@ -13,23 +13,21 @@ class ErrorType(IntEnum):
     NULL_ROWS = 1
     BINARY_RELATIONS_ANOMALY = 2
 
-def err_to_string(errType) -> str:
-    if errType == ErrorType.NULL_ROWS:
-        return "We detected a change in the proportion of NULL cells."
-    elif errType == ErrorType.BINARY_RELATIONS_ANOMALY:
-        return "We detected a change in the binary relation of these columns."
-    return "An unknown error has occured"
-
 # Convenient way to pass anomaly information to the message builder.
 class DataError(Exception):
-    def __init__(self, alert_id: int, table: str, col: str, typ: ErrorType):
+    def __init__(self, alert_id: int, table: str, cols: list, typ: ErrorType, errorMsg: str):
         self.alert_id = alert_id
         self.table = table
-        self.col = col
+        self.cols = cols
         self.type = typ
+        self.errorMsg = errorMsg
 
     def to_str(self):
-        return "*TABLE*: " + self.table + "\n*COLUMN*: " + self.col + "\n" + err_to_string(self.type)
+        table_str = "*TABLE*: " + self.table
+        columns_str = "*COLUMN*:"
+        for col in self.cols:
+            columns_str += " "  + col
+        return table_str + "\n" + columns_str + "\n" + self.errorMsg
 
 # All messages in slack are markdown format, this creates a section block.
 def create_block(message: str):

@@ -76,7 +76,8 @@ class Daudit:
                     # add error to alert table
                     self.create_alert(table_id, int(ErrorType.NULL_ROWS), column_id)
                     alert_id = self.get_alert_id(table_id, int(ErrorType.NULL_ROWS), column_id)
-                errs.append(DataError(alert_id[0], self.table_name, col, ErrorType.NULL_ROWS))
+                errs.append(DataError(alert_id[0], self.table_name, [col], ErrorType.NULL_ROWS,
+                    "We detected a change in the proportion of NULL cells."))
 
     def perform_binary_relationship_checks(self, profile_id: int, errs: list):
         HARDCODE_START_DATE = datetime.datetime(2019, 6, 1, 0, 0, 0)
