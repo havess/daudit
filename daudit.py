@@ -31,6 +31,7 @@ class Daudit:
             useful_count, not_useful_count = 0, 0
         else:
             useful_count, not_useful_count = useful_counts[0]
+        
         profile_prob_null = profile_null_count/profile_total_count
         total_prob_null = (profile_null_count + new_null_count)/(profile_total_count + new_total_count)
 
@@ -79,16 +80,43 @@ class Daudit:
                 errs.append(DataError(alert_id[0], self.table_name, [col], ErrorType.NULL_ROWS,
                     "We detected a change in the proportion of NULL cells."))
 
+    def is_binary_relation_anomalous(self, new_rel_count: int, new_total_count: int, profile_rel_count: int, profile_total_count: int, col_a: str, col_b: str):
+    
+        col_a_useful_counts = self.db_conn_internal.get_useful_counts(1, self.table_name, col_a)
+        col_b_useful_counts = self.db_conn_internal.get_useful_counts(1, self.table_name, col_b)
+
+        if len(col_a_useful_counts) == 0:
+            col_a_useful_count, col_a_not_useful_count = 0, 0
+        else:
+            col_a_useful_count, col_a_not_useful_count = col_a_useful_counts[0]
+
+        if len(col_b_useful_counts) == 0:
+            col_b_useful_count, col_b_not_useful_count = 0, 0
+        else:
+            col_b_useful_count, col_b_not_useful_count = col_b_useful_counts[0]
+
+        profile_rel_prop = profile_rel_count/profile_total_count
+        total_prob_rel = (profile_rel_count + new_rel_count)/(profile_total_count + new_total_count)
+
+        conf_interval_padding_a = 1 - 2*(1/2)**(col_a_not_useful_count + 1)
+        conf_interval_a = 0.95 + 0.05 * conf_interval_padding_a
+
+        conf_interval_padding_b = 1 - 2*(1/2)**(col_b_not_useful_count + 1)
+        conf_interval_b = 0.95 + 0.05 * conf_interval_padding_b
+
+        conf_interval = (conf_interval_a + conf_interval_b)/2
+
+        z = st.norm.ppf( (1 - conf_interval)/2 + conf_interval )
+
+        conf_interval = z * sqrt(profile_rel_prop * (1 - profile_rel_prop)/profile_total_count)
+
+        if total_prob_rel > profile_rel_prop + conf_interval:
+            return True
+        return False
+
     def perform_binary_relationship_checks(self, profile_id: int, errs: list):
         HARDCODE_START_DATE = datetime.datetime(2019, 6, 1, 0, 0, 0)
         HARDCODE_END_DATE = datetime.datetime(2019, 6, 2, 0, 0, 0)
-
-        binary_relationship_profile = self.db_conn_internal.get_internal_binary_relationship_profile(
-            profile_id,
-            self.table_name
-        )
-
-        print(binary_relationship_profile)
 
         new_binary_relations = self.db_conn.get_binary_relationships_for_date_range(
             self.table_name,
@@ -97,8 +125,24 @@ class Daudit:
             HARDCODE_END_DATE
         )
 
-        print(new_binary_relations)
+        new_binary_relations_dict = {(col_a, col_b, a, b): (count, num_rows) for col_a, col_b, a, b, count, num_rows in new_binary_relations}
+
+        binary_relationship_profile = self.db_conn_internal.get_internal_binary_relationship_profile(
+            profile_id,
+            self.table_name
+        )
         
+        for col_a, col_b, a, b, count, num_rows in binary_relationship_profile:
+
+            if (col_a, col_b, a, b) in new_binary_relations_dict:
+                if self.is_binary_relation_anomalous(new_binary_relations_dict[(col_a, col_b, a, b)][0], new_binary_relations_dict[(col_a, col_b, a, b)][1], \
+                    count, num_rows, col_a, col_b):
+                    
+                    print("WE HAVE A BINARY RELATIONSHIP ANOMALY")
+                    print(col_a, col_b, a, b)
+                    print(new_binary_relations_dict[(col_a, col_b, a, b)][0], new_binary_relations_dict[(col_a, col_b, a, b)][1], count, num_rows)
+                    # TODO handle error
+    
     def generate_null_profile(self, profile_id: int, num_rows: int):
         HARDCODE_DATETIME = datetime.datetime(2019, 6, 1, 0, 0, 0)
         null_proportions = self.db_conn.get_null_profile(
