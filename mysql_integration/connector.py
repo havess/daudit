@@ -225,11 +225,11 @@ class Connector:
         query = """
             SELECT ID
             FROM ALERT_TABLE
-            WHERE TABLE_ID = "%d" AND NOTIFICATION_ID = "%d" AND column_id_a = "%d" AND column_id_b = "%d";
+            WHERE TABLE_ID = %s AND NOTIFICATION_ID = %s AND column_id_a = %s AND column_id_b = %s;
             """% (table_id, notification_id, col_a, col_b)
 
         cursor.execute(query)
-        alert_id = cursor.fetchall()[0][0]
+        alert_id = [c[0] for c in cursor.fetchall()]
         cnx.close()
         print(alert_id)
         return alert_id
@@ -240,7 +240,7 @@ class Connector:
         current_date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         query = """
             insert into alert_table (table_id, notification_id, start_date, column_id_a, column_id_b, is_acknowledged)
-            values (%s, %s, %s, %s, %s, False)
+            values (%s, %s, '%s', %s, %s, 0)
             """ %(table_id, notification_id, current_date, col_a, col_b)
         print(query)
         cursor.execute(query)
@@ -284,7 +284,7 @@ class Connector:
         cnx.close()
         return res
 
-    def create_null_profile(self, profile_id: int, num_rows: int, table_name: str, null_data: list):
+    def create_internal_null_profile(self, profile_id: int, num_rows: int, table_name: str, null_data: list):
         cnx = mysql.connector.connect(**self.config)
         cursor = cnx.cursor()
         table_id = self.get_table_id(table_name)
@@ -300,7 +300,7 @@ class Connector:
         cnx.commit()
         cnx.close()
 
-    def get_null_profile(self, profile_id: int, table_name: str):
+    def get_internal_null_profile(self, profile_id: int, table_name: str):
         cnx = mysql.connector.connect(**self.config)
         cursor = cnx.cursor()
 

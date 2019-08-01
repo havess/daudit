@@ -60,7 +60,7 @@ class Daudit:
 
         new_proportions_dict = {col: (null_count, total) for col, null_count, total in new_null_proportions}
 
-        null_profile = self.db_conn_internal.get_null_profile(
+        null_profile = self.db_conn_internal.get_internal_null_profile(
             profile_id,
             self.table_name
         )
@@ -70,13 +70,13 @@ class Daudit:
                 null_count, total, col):
                 # Add to list of errors
                 table_id = self.get_table_id(self.table_name)
-                column_id = self.get_column_id(col)
-                alert_id = self.get_alert_id(self.table_name, int(ErrorType.NULL_ROWS), column_id)
-                if not alert_id:
+                column_id = self.db_conn_internal.get_column_id(col, table_id)
+                alert_id = self.get_alert_id(table_id, int(ErrorType.NULL_ROWS), column_id)
+                if len(alert_id) == 0:
                     # add error to alert table
                     self.create_alert(table_id, int(ErrorType.NULL_ROWS), column_id)
-                    alert_id = self.get_alert_id(self.table_name, int(ErrorType.NULL_ROWS), column_id)
-                errs.append(DataError(alert_id, elf.table_name, col, ErrorType.NULL_ROWS))
+                    alert_id = self.get_alert_id(table_id, int(ErrorType.NULL_ROWS), column_id)
+                errs.append(DataError(alert_id[0], self.table_name, col, ErrorType.NULL_ROWS))
 
     def perform_binary_relationship_checks(self, profile_id: int, errs: list):
         pass
@@ -91,7 +91,7 @@ class Daudit:
             num_rows
         )
 
-        self.db_conn_internal.create_null_profile(
+        self.db_conn_internal.create_internal_null_profile(
             profile_id,
             num_rows,
             self.table_name,
@@ -116,10 +116,6 @@ class Daudit:
         self.generate_binary_relationship_profile(profile_id, num_rows)
 
         return profile_id
-
-    def get_column_id(self, column_name: str):
-        column_id = self.db_conn_internal.get_column_id(column_name)
-        return column_id
 
     def get_table_id(self, table_name: str):
         table_id = self.db_conn_internal.get_table_id(table_name)
