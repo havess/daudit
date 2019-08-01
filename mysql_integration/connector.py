@@ -379,34 +379,129 @@ class Connector:
         cols = self.get_columns(table_name)
         res = []
 
-        for c in cols:
-            if c != date_col:
-                query = """
-                    WITH q1 AS (
+        for x in range(len(cols)):
+            for y in range(x + 1, len(cols)):
+                col_a = cols[x]
+                col_b = cols[y]
+                # TODO: Remove this hardcoding and fix query
+                if col_a == 'ComplaintType' and col_b == 'City' and col_a != date_col and col_b != date_col:
+                    query = """
+                        WITH q1 AS (
+                            SELECT 
+                                %s,
+                                %s,
+                                %s,
+                                row_number() OVER (ORDER BY %s) AS rn 
+                            FROM %s
+                        ), q2 AS (
+                            SELECT 
+                                MAX(rn) AS max_rn 
+                            FROM q1 
+                            WHERE %s < '%s'
+                        )
                         SELECT 
-                            %s,
-                            %s,
-                            row_number() OVER (ORDER BY %s) AS rn 
-                        FROM %s
-                    ), q2 AS (
-                        SELECT 
-                            MAX(rn) AS max_rn 
-                        FROM q1 
-                        WHERE %s < '%s'
-                    )
-                    SELECT COUNT(*)
-                    FROM q1, q2
-                    WHERE 
-                        CAST(max_rn AS SIGNED) - CAST(rn AS SIGNED) < %s
-                        AND max_rn > rn
-                        AND %s IS NULL;
-                """ % (date_col, c, date_col, table_name, date_col, sql_date, str(num_rows), c)
-                # cursor.execute(query)
-                # res.append((c, cursor.fetchall()[0][0], num_rows))
-                print(query)
+                            %s, 
+                            %s, 
+                            COUNT(*)
+                        FROM q1, q2
+                        WHERE
+                            CAST(max_rn AS SIGNED) - CAST(rn AS SIGNED) < %s
+                            AND max_rn > rn
+                        GROUP BY
+                            %s, %s
+                        HAVING 
+                            COUNT(*) > 100;
+                    """ % (date_col, col_a, col_b, date_col, table_name, date_col, sql_date, col_a, col_b, str(num_rows), col_a, col_b)
+
+                    cursor.execute(query)
+
+                    for a, b, count in cursor.fetchall():
+                        res.append((col_a, col_b, a, b, count, num_rows))
     
         cnx.close()
         return res
     
-    def create_internal_binary_relationship_profile(self, profile_id: int, num_rows: int, table_name: str, null_data: list):
-        pass
+    def create_internal_binary_relationship_profile(self, profile_id: int, num_rows: int, table_name: str, binary_relation_data: list):
+        cnx = mysql.connector.connect(**self.config)
+        cursor = cnx.cursor()
+        table_id = self.get_table_id(table_name)
+    
+        for col_a, col_b, a_content, b_content, count, _ in binary_relation_data:
+            col_id_a = self.get_column_id(col_a, table_id)
+            col_id_b = self.get_column_id(col_b, table_id)
+            query = """
+                INSERT INTO binary_relations_profile_table (profile_id, table_id, column_id_a, column_id_b, a_content, b_content, count)
+                VALUES (%s, %s, %s, %s, '%s', '%s', %s)
+            """ % (profile_id, table_id, col_id_a, col_id_b, a_content, b_content, count)
+            cursor.execute(query)
+
+        cnx.commit()
+        cnx.close()
+
+    def get_binary_relationships_for_date_range(self, table_name: str, date_col: str, start_date: datetime.date, end_date: datetime.date):
+        cnx = mysql.connector.connect(**self.config)
+        cursor = cnx.cursor()
+        start_date = start_date.strftime('%Y-%m-%d %H:%M:%S')
+        end_date = end_date.strftime('%Y-%m-%d %H:%M:%S')
+        cols = self.get_columns(table_name)
+        res = []
+
+        for x in range(len(cols)):
+            for y in range(x + 1, len(cols)):
+                col_a = cols[x]
+                col_b = cols[y]
+                # TODO: Remove this hardcoding and fix query
+                if col_a == 'ComplaintType' and col_b == 'City' and col_a != date_col and col_b != date_col:
+                    query = """
+                        SELECT 
+                            %s, 
+                            %s, 
+                            COUNT(*)
+                        FROM q1, q2
+                        WHERE
+                            %s BETWEEN '%s' AND '%s'
+                        GROUP BY
+                            %s, %s
+                        HAVING 
+                            COUNT(*) > 100;
+                    """ % (col_a, col_b, date_col, start_date, end_date, col_a, col_b)
+
+                    cursor.execute(query)
+
+                    for a, b, count in cursor.fetchall():
+                        res.append((col_a, col_b, a, b, count, num_rows))
+
+        cnx.close()
+        return res
+
+    def get_internal_binary_relationship_profile(self, profile_id: int, table_name: str):
+        cnx = mysql.connector.connect(**self.config)
+        cursor = cnx.cursor()
+
+        query = """
+            SELECT
+                c.column_name AS col_a_name,
+                c2.column_name AS col_b_name,
+                a_content,
+                b_content,
+                count,
+                p.num_rows
+            FROM
+                binary_relations_profile_table brp
+            JOIN
+                monitored_tables m ON m.table_id = brp.table_id
+            JOIN
+                column_table c ON c.column_id = brp.column_id_a
+            JOIN
+                column_table c2 ON c2.column_id = brp.column_id_b
+            JOIN
+                profile_table p ON p.profile_id = brp.profile_id
+            WHERE
+                table_name = '%s' AND
+                brp.profile_id = %s;
+        """ % (table_name, profile_id)
+
+        cursor.execute(query)
+        res = [c for c in cursor.fetchall()]
+        cnx.close()
+        return res

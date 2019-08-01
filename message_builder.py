@@ -15,7 +15,9 @@ class ErrorType(IntEnum):
 
 def err_to_string(errType) -> str:
     if errType == ErrorType.NULL_ROWS:
-        return "We detected a change in the proportion of NULL cells"
+        return "We detected a change in the proportion of NULL cells."
+    elif errType == ErrorType.BINARY_RELATIONS_ANOMALY:
+        return "We detected a change in the binary relation of these columns."
     return "An unknown error has occured"
 
 # Convenient way to pass anomaly information to the message builder.

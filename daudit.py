@@ -79,8 +79,25 @@ class Daudit:
                 errs.append(DataError(alert_id[0], self.table_name, col, ErrorType.NULL_ROWS))
 
     def perform_binary_relationship_checks(self, profile_id: int, errs: list):
-        pass
+        HARDCODE_START_DATE = datetime.datetime(2019, 6, 1, 0, 0, 0)
+        HARDCODE_END_DATE = datetime.datetime(2019, 6, 2, 0, 0, 0)
 
+        binary_relationship_profile = self.db_conn_internal.get_internal_binary_relationship_profile(
+            profile_id,
+            self.table_name
+        )
+
+        print(binary_relationship_profile)
+
+        new_binary_relations = self.db_conn.get_binary_relationships_for_date_range(
+            self.table_name,
+            self.date_col,
+            HARDCODE_START_DATE,
+            HARDCODE_END_DATE
+        )
+
+        print(new_binary_relations)
+        
     def generate_null_profile(self, profile_id: int, num_rows: int):
         HARDCODE_DATETIME = datetime.datetime(2019, 6, 1, 0, 0, 0)
         null_proportions = self.db_conn.get_null_profile(
