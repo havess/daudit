@@ -31,7 +31,7 @@ class Daudit:
             useful_count, not_useful_count = 0, 0
         else:
             useful_count, not_useful_count = useful_counts[0]
-        
+
         profile_prob_null = profile_null_count/profile_total_count
         total_prob_null = (profile_null_count + new_null_count)/(profile_total_count + new_total_count)
 
@@ -81,7 +81,7 @@ class Daudit:
                     "We detected a change in the proportion of NULL cells."))
 
     def is_binary_relation_anomalous(self, new_rel_count: int, new_total_count: int, profile_rel_count: int, profile_total_count: int, col_a: str, col_b: str):
-    
+
         col_a_useful_counts = self.db_conn_internal.get_useful_counts(1, self.table_name, col_a)
         col_b_useful_counts = self.db_conn_internal.get_useful_counts(1, self.table_name, col_b)
 
@@ -131,18 +131,28 @@ class Daudit:
             profile_id,
             self.table_name
         )
-        
+
         for col_a, col_b, a, b, count, num_rows in binary_relationship_profile:
 
             if (col_a, col_b, a, b) in new_binary_relations_dict:
                 if self.is_binary_relation_anomalous(new_binary_relations_dict[(col_a, col_b, a, b)][0], new_binary_relations_dict[(col_a, col_b, a, b)][1], \
                     count, num_rows, col_a, col_b):
-                    
+
                     print("WE HAVE A BINARY RELATIONSHIP ANOMALY")
                     print(col_a, col_b, a, b)
                     print(new_binary_relations_dict[(col_a, col_b, a, b)][0], new_binary_relations_dict[(col_a, col_b, a, b)][1], count, num_rows)
-                    # TODO handle error
-    
+
+                    table_id = self.get_table_id(self.table_name)
+                    column_id_a = self.db_conn_internal.get_column_id(col_a, table_id)
+                    columb_id_b = self.db_conn_internal.get_column_id(col_b, table_id)
+                    alert_id = self.get_alert_id(table_id, int(ErrorType.NULL_ROWS), column_id_a, columb_id_b)
+                    if len(alert_id) == 0:
+                        # add error to alert table
+                        self.create_alert(table_id, int(ErrorType.NULL_ROWS), column_id_a, columb_id_b)
+                        alert_id = self.get_alert_id(table_id, int(ErrorType.NULL_ROWS), column_id_a, columb_id_b)
+                    errs.append(DataError(alert_id[0], self.table_name, [col_a, col_b], ErrorType.BINARY_RELATIONS_ANOMALY,
+                        "We detected a binary relationship anomaly with values (" + a + " " + b + ")"))
+
     def generate_null_profile(self, profile_id: int, num_rows: int):
         HARDCODE_DATETIME = datetime.datetime(2019, 6, 1, 0, 0, 0)
         null_proportions = self.db_conn.get_null_profile(
@@ -208,6 +218,7 @@ class Daudit:
         table_id = alert_res[0][0]
         notification_id = alert_res[0][1]
         column_id_a = alert_res[0][4]
+        column_id_b = alert_res[0][5]
         notif_res = self.db_conn_internal.get_threshold_info(table_id, notification_id, column_id_a)
         if not notif_res:
             self.db_conn_internal.insert_notification_threshold(table_id, notification_id, column_id_a, 1, 0)
@@ -215,12 +226,21 @@ class Daudit:
             id = notif_res[0][0]
             useful_count = notif_res[0][1]
             self.db_conn_internal.update_notification_useful_count(id, useful_count+1)
+        if column_id_b != -1:
+            notif_res = self.db_conn_internal.get_threshold_info(table_id, notification_id, column_id_b)
+            if not notif_res:
+                self.db_conn_internal.insert_notification_threshold(table_id, notification_id, column_id_b, 1, 0)
+            else:
+                id = notif_res[0][0]
+                useful_count = notif_res[0][1]
+                self.db_conn_internal.update_notification_useful_count(id, useful_count+1)
 
     def alert_not_useful(self, alert_id: int):
         alert_res = self.db_conn_internal.get_alert_info(alert_id)
         table_id = alert_res[0][0]
         notification_id = alert_res[0][1]
         column_id_a = alert_res[0][4]
+        column_id_b = alert_res[0][5]
         notif_res = self.db_conn_internal.get_threshold_info(table_id, notification_id, column_id_a)
         if not notif_res:
             self.db_conn_internal.insert_notification_threshold(table_id, notification_id, column_id_a, 0, 1)
@@ -228,6 +248,14 @@ class Daudit:
             id = notif_res[0][0]
             not_useful_count = notif_res[0][2]
             self.db_conn_internal.update_notification_not_useful_count(id, not_useful_count+1)
+        if column_id_b != -1:
+            notif_res = self.db_conn_internal.get_threshold_info(table_id, notification_id, column_id_b)
+            if not notif_res:
+                self.db_conn_internal.insert_notification_threshold(table_id, notification_id, column_id_b, 0, 1)
+            else:
+                id = notif_res[0][0]
+                useful_count = notif_res[0][1]
+                self.db_conn_internal.update_notification_not_useful_count(id, not_useful_count+1)
 
 
     def run_audit(self):
