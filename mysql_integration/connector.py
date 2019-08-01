@@ -83,24 +83,26 @@ class Connector:
         cnx.close()
 
 
-    def add_paired_data(self, table_name: str,  col0_name: str, col0_val: str, col1_name: str, col1_val : str, paired_prop: float):
+    def add_paired_data(self, table_name: str,  col0_name: str, col0_val: str, col1_name: str, col1_val : str, paired_prop: float, start_date: datetime.date, end_date: datetime.date):
         """
         Add nulls to a column in a table in the rows between start_date and end_date.
         """
         cnx = mysql.connector.connect(**self.config)
         cursor = cnx.cursor()
+        start_date = start_date.strftime('%Y-%m-%d %H:%M:%S')
+        end_date = end_date.strftime('%Y-%m-%d %H:%M:%S')
 
         query = """
             UPDATE %s
             SET %s = "%s", %s = "%s"
             WHERE
-                RAND() < %s;
-        """ % (table_name, col0_name, col0_val, col1_name, col1_val, str(paired_prop))
+                RAND() < %s
+                AND CreatedDate BETWEEN '%s' AND '%s';
+        """ % (table_name, col0_name, col0_val, col1_name, col1_val, str(paired_prop), start_date, end_date)
 
         cursor.execute(query)
         cnx.commit()
         cnx.close()
-
 
 
     def create_nulls(self, table_name: str):

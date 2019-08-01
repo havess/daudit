@@ -99,10 +99,10 @@ class Daudit:
         total_prob_rel = (profile_rel_count + new_rel_count)/(profile_total_count + new_total_count)
 
         conf_interval_padding_a = 1 - 2*(1/2)**(col_a_not_useful_count + 1)
-        conf_interval_a = 0.95 + 0.05 * conf_interval_padding_a
+        conf_interval_a = 0.999999 + 0.05 * conf_interval_padding_a
 
         conf_interval_padding_b = 1 - 2*(1/2)**(col_b_not_useful_count + 1)
-        conf_interval_b = 0.95 + 0.05 * conf_interval_padding_b
+        conf_interval_b = 0.999999 + 0.05 * conf_interval_padding_b
 
         conf_interval = (conf_interval_a + conf_interval_b)/2
 

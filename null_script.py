@@ -11,8 +11,8 @@ def reset_col(db_conn, table_name, col_name):
 def introduce_nulls(db_conn, table_name, col_name, start_date, end_date, null_prop):
     db_conn.add_nulls(table_name, col_name, start_date, end_date, null_prop)
 
-def introduce_paired_data(db_conn, table_name,  col0_name, col0_val, col1_name, col1_val, paired_prop):
-    db_conn.add_paired_data(table_name, col0_name, col0_val, col1_name, col1_val, paired_prop)
+def introduce_paired_data(db_conn, table_name,  col0_name, col0_val, col1_name, col1_val, paired_prop, start_date, end_date):
+    db_conn.add_paired_data(table_name, col0_name, col0_val, col1_name, col1_val, paired_prop, start_date, end_date)
 
 
 if __name__ == "__main__":
@@ -44,6 +44,8 @@ if __name__ == "__main__":
         # python null_script.py ADD_PAIRED demo NYC311Data City BRONX ComplaintType Noise 0.5
 
         _, cmd, config_name, table_name, col0_name, col0_val, col1_name, col1_val, paired_prop = sys.argv
-        introduce_paired_data(db_conn, table_name, col0_name, col0_val, col1_name, col1_val, paired_prop)
+        HARDCODE_START_DATE = datetime.datetime(2019, 6, 1, 0, 0, 0)
+        HARDCODE_END_DATE = datetime.datetime(2019, 6, 2, 0, 0, 0)
+        introduce_paired_data(db_conn, table_name, col0_name, col0_val, col1_name, col1_val, paired_prop, HARDCODE_START_DATE, HARDCODE_END_DATE)
 
 
