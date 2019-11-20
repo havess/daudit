@@ -263,7 +263,7 @@ class Daudit:
                 self.db_conn_internal.update_notification_not_useful_count(id, not_useful_count+1)
 
 
-    def show_reports(self, user_name: str):
+    def update_metrics(self, user_name: str):
         self.metrics_users_report_data[user_name] += 1
         self.metrics_times_not_useful_reported += 1
 

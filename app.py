@@ -19,6 +19,8 @@ from message_builder import MessageType, MessageData, RunMessageData, HelpMessag
     InvalidArgsMessageData, \
     UnknownCommandMessageData, MessageBuilder, DataError, ReportMessageData
 
+from reports_builder import ReportsBuilder
+
 from daudit import Daudit
 
 import configparser
@@ -73,6 +75,12 @@ def send_message(msg):
     # builder.timestamp = response["ts"]
 
 
+def upload_file(msg):
+    response = client.files_upload(**msg)
+    return response.get("file").get("url_private")
+
+
+
 # ============== Message Events ============= #
 # When a user sends a DM, the event type will be 'message'.
 # Here we'll link the message callback to the 'message' event.
@@ -118,6 +126,7 @@ def handle_message(event_data):
         elif command == "report":
             msg = builder.build(MessageType.REPORT, ReportMessageData())
             send_message(msg)
+            auditQueue.put((WorkType.SHOW_REPORTS, data))
 
         else:
             msg = builder.build(MessageType.UNKNOWN, UnknownCommandMessageData())
@@ -188,8 +197,16 @@ def worker_function(name):
             print("Increasing confidence interval")
         elif workType == WorkType.SHOW_REPORTS:
             print(data)
-            user_name = data.get("user").get("username")
-            my_daudit.show_reports(user_name)
+            channel_id = data.get("channel")
+            print("GENERATING REPORTS")
+            # my_daudit.update_metrics(user_name)
+            builder = ReportsBuilder(channel_id)
+            print("DONE GENERATING REPORTS")
+            msg = builder.generateGraph()
+            url = upload_file(msg)
+            # print("URL = " + url)
+            # msg = builder.build(url)
+            # send_message(msg)
 
 
 def main():
