@@ -8,6 +8,7 @@ class MessageType(Enum):
     ERROR = 3
     INVALID_ARGS = 4
     UNKNOWN = 5
+    REPORT = 6
 
 
 # This defines the type of anomaly we have found in the data.
@@ -72,6 +73,11 @@ class HelpMessageData(MessageData):
                              "*run* - Initiate a full audit. \n" +
                              "*report* - Report useful metrics collected over time. \n" +
                              "*set* <key> <value> - Initiate a full audit.")]
+
+
+class ReportMessageData(MessageData):
+    def to_markdown_block(self):
+        return [create_block("Creating a report of useful metrics...")]
 
 
 class ErrorMessageData(MessageData):

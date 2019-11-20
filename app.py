@@ -17,7 +17,7 @@ import slack
 
 from message_builder import MessageType, MessageData, RunMessageData, HelpMessageData, ErrorMessageData, \
     InvalidArgsMessageData, \
-    UnknownCommandMessageData, MessageBuilder, DataError
+    UnknownCommandMessageData, MessageBuilder, DataError, ReportMessageData
 
 from daudit import Daudit
 
@@ -114,6 +114,10 @@ def handle_message(event_data):
             except BaseException:
                 msg = builder.build(MessageType.INVALID_ARGS, InvalidArgsMessageData())
                 send_message(msg)
+
+        elif command == "report":
+            msg = builder.build(MessageType.REPORT, ReportMessageData())
+            send_message(msg)
 
         else:
             msg = builder.build(MessageType.UNKNOWN, UnknownCommandMessageData())
