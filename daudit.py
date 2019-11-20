@@ -4,6 +4,7 @@ import scipy.stats as st
 from math import sqrt
 from mysql_integration.connector import Connector
 from message_builder import ErrorType
+from collections import defaultdict
 
 
 from message_builder import MessageType, MessageBuilder, DataError, ErrorType
@@ -16,6 +17,8 @@ class Daudit:
         self.db_conn_internal = Connector('127.0.0.1', 'daudit_internal', 'root', 'rootroot')
         self.cols = self.db_conn.get_columns(self.table_name)
         # self.db_conn.create_nulls(self.table_name)
+        self.metrics_times_not_useful_reported = 0
+        self.metrics_users_report_data = defaultdict(int)
 
     def validate_table_name(self, table_name: int):
         exists = self.db_conn_internal.validate_table_id(table_name)
@@ -258,6 +261,11 @@ class Daudit:
                 id = notif_res[0][0]
                 useful_count = notif_res[0][1]
                 self.db_conn_internal.update_notification_not_useful_count(id, not_useful_count+1)
+
+
+    def show_reports(self, user_name: str):
+        self.metrics_users_report_data[user_name] += 1
+        self.metrics_times_not_useful_reported += 1
 
 
     def run_audit(self):

@@ -3,3 +3,5 @@ tokens
 .DS_Store
 venv
 *.swp
+.idea
+node_modules
