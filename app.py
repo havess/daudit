@@ -188,12 +188,14 @@ def worker_function(name):
             alert_id = action_data.get("block_id")
             user_name = data.get("user").get("username")
             my_daudit.acknowledge_alert(alert_id, user_name)
+            my_daudit.update_metrics(data.get("user"))
             print("Acknowledgeing error")
         elif workType == WorkType.INCREASE_CONF_INTERVAL:  # User clicked slack alert was not useful/serious enough
             print(data)
             action_data = data.get("actions")[0]
             alert_id = action_data.get("block_id")
             my_daudit.alert_not_useful(alert_id)
+            my_daudit.update_metrics(data.get("user"))
             print("Increasing confidence interval")
         elif workType == WorkType.SHOW_REPORTS:
             print(data)
@@ -203,7 +205,9 @@ def worker_function(name):
             builder = ReportsBuilder(channel_id)
             print("DONE GENERATING REPORTS")
             msg = builder.generateGraph()
+            builder.createBarGraph(my_daudit.get_metrics())
             url = upload_file(msg)
+            my_daudit.update_metrics(data.get("user"))
             # print("URL = " + url)
             # msg = builder.build(url)
             # send_message(msg)

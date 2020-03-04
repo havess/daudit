@@ -11,3 +11,6 @@ To run slack bot:
 Need to install the dependencies that generate image files
 1. `$ npm install -g electron@1.8.4 orca`
 2. `$ pip3 install psutil requests`
+3. `$ pip3 install plotly`
+
+NOTE: step 1 might not work, there are other ways to install Electron's Orca through conda

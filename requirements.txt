@@ -7,3 +7,4 @@ slackeventsapi
 scipy
 psutil
 requests
+plotly==4.4.1

@@ -18,7 +18,8 @@ class Daudit:
         self.cols = self.db_conn.get_columns(self.table_name)
         # self.db_conn.create_nulls(self.table_name)
         self.metrics_times_not_useful_reported = 0
-        self.metrics_users_report_data = defaultdict(int)
+        self.metrics_user_actions_count = defaultdict(int)
+        self.metrics_user_actions_count["TEST_USER"] = 5
 
     def validate_table_name(self, table_name: int):
         exists = self.db_conn_internal.validate_table_id(table_name)
@@ -263,9 +264,13 @@ class Daudit:
                 self.db_conn_internal.update_notification_not_useful_count(id, not_useful_count+1)
 
 
-    def update_metrics(self, user_name: str):
-        self.metrics_users_report_data[user_name] += 1
+    def update_metrics(self, user_id: str):
+        self.metrics_user_actions_count[user_id] += 1
         self.metrics_times_not_useful_reported += 1
+        print("Metrics = " + str(self.metrics_user_actions_count[user_id]))
+
+    def get_metrics(self):
+        return self.metrics_user_actions_count
 
 
     def run_audit(self):
