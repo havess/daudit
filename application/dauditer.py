@@ -11,15 +11,15 @@ class Dauditer:
     def __init__(self, job):
         self._job = job
         self.table_name = job.table_name
-        self.date_col = 'CreatedDate'
+        self.date_col = job.date_col
         
-        self.db_conn = sql.get_connection()
-        self.db_conn_internal = Connector('127.0.0.1', 'daudit_internal', 'root', 'rootroot')
+        self.db_conn = sql.get_connection(sql.get_db_descriptor(job.host_name, job.db_name))
+        self.db_conn_internal = sql.get_internal_connection()
         self.cols = self.db_conn.get_columns(self.table_name)
         # self.db_conn.create_nulls(self.table_name)
 
-    def validate_table_name(self, table_name: int):
-        exists = self.db_conn_internal.validate_table_id(table_name)
+    def validate_table_name(self):
+        exists = self.db_conn_internal.validate_table_id(self._job.table_name)
         if (exists):
             return True
         return False
@@ -263,6 +263,11 @@ class Dauditer:
 
     def run_audit(self):
         errs = []
+
+        if not validate_table_name():
+            # TODO: Return some sort of error saying table does not exist?
+            return []
+
         profile_id = self.generate_profile()
 
         self.perform_null_checks(profile_id, errs)

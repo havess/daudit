@@ -16,7 +16,7 @@ def get_connection(db_descriptor):
 
     config.read(PATH)
 
-    user_name = config[db_descriptor]["USER_NAME"]
+    user_name = config[db_descriptor]["USERNAME"]
     password = config[db_descriptor]["PASSWORD"]
     database = config[db_descriptor]["DATABASE"]
     host = config[db_descriptor]["HOST"]
@@ -52,10 +52,10 @@ def add_config(host_name, db_name, username, password):
         return False
 
     config[desc] = {
-            'name' : db_name,
-            'host' : host_name,
-            'username' : username,
-            'password' : password
+            'DATABASE' : db_name,
+            'HOST' : host_name,
+            'USERNAME' : username,
+            'PASSWORD' : password
             }
 
     with open(PATH, "a") as configfile:

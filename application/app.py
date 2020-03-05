@@ -6,6 +6,7 @@ import ssl as ssl_lib
 import threading
 import queue
 import json
+import sys
 
 from flask import request, make_response
 from enum import Enum
@@ -16,7 +17,7 @@ import slack
 
 from message_builder import *
 
-from daudit import Daudit
+from dauditer import Dauditer
 from scheduler.scheduler import DauditScheduler
 
 import configparser
@@ -27,6 +28,7 @@ import mysql_integration.my_sql as sql
 slack_events_adapter = SlackEventAdapter(os.environ["SLACK_SIGNING_SECRET"], endpoint="/slack/events")
 client = slack.WebClient(os.environ["SLACK_API_TOKEN"], timeout=30)
 
+JOBS_CONFIG_PATH = 'scheduler/jobs.json'
 
 class WorkType(Enum):
     RUN_AUDIT = 1
@@ -35,7 +37,6 @@ class WorkType(Enum):
 
 auditQueue = queue.Queue()
 
-my_daudit = None
 my_daudit_scheduler = None
 g_worker = None
 
@@ -51,6 +52,9 @@ def send_message(msg):
 # Here we'll link the message callback to the 'message' event.
 @slack_events_adapter.on(event="message")
 def handle_message(event_data):
+
+    print("\n\n\nHANDLING MESSAGE\n\n\n", file=sys.stderr)
+
     data = event_data.get("event")
     channel_id = data.get("channel")
     user_id = data.get("user")
@@ -87,11 +91,32 @@ def handle_mention(event_data):
     command = commandNArgs[0]
     args = commandNArgs[2]
     if command == "run_audit":
-        if my_daudit.validate_table_name(args):
-            msg = builder.build(MessageType.RUN, RunMessageData(args))
-            send_message(msg)
-            auditQueue.put((WorkType.RUN_AUDIT, data))
-            msg = builder.build(MessageType.CONFIRMATION, ConfirmationMessageData("run_audit"))
+        if args != '':
+            print("\n\n\nBEFORE OPENING CONFIG\n\n\n", args, file=sys.stderr)
+
+            with open(JOBS_CONFIG_PATH, 'r+') as config_file:
+                config_json = json.load(config_file)
+
+            print("\n\n\nAFTER OPENING CONFIG\n\n\n", config_json, file=sys.stderr)
+
+            if args in config_json:
+                msg = builder.build(MessageType.RUN, RunMessageData(args))
+                send_message(msg)
+                host_name, db_name, table_name = args.split(":")
+
+                job = {
+                    'db_name': db_name,
+                    'table_name': table_name,
+                    'host_name': host_name,
+                    'date_col': config_json[args]['date_col'],
+                    'last_ran': config_json[args]['last_run'],
+                }
+
+                auditQueue.put((WorkType.RUN_AUDIT, job))
+                msg = builder.build(MessageType.CONFIRMATION, ConfirmationMessageData("run_audit"))
+            else:
+                # TODO: This should inform user that they entered an invalid job, maybe prompt them for list of jobs?
+                msg = builder.build(MessageType.INVALID_ARGS, InvalidArgsMessageData())
         else:
             msg = builder.build(MessageType.INVALID_ARGS, InvalidArgsMessageData())
     elif command == "help":
@@ -175,10 +200,18 @@ def worker_function(name):
         if workType == WorkType.RUN_AUDIT:
             channel_id = data.get("channel")
             builder = MessageBuilder(channel_id)
-            errs = my_daudit.run_audit()
+            dauditer = Dauditer(data)
+
+            print("STARTING AUDIT")
+            errs = dauditer.run_audit()
+            print("DONE AUDIT")
+
             if len(errs):
                 msg = builder.build(MessageType.ERROR, ErrorMessageData(errs))
                 send_message(msg)
+            else:
+                # TODO: Inform user audit completed without errors
+                pass
         elif workType == WorkType.ACKNOWLEDGE_ERROR:
             action_data = data.get("actions")[0]
             alert_id = action_data.get("block_id")
@@ -191,10 +224,8 @@ def worker_function(name):
 
 
 def main():
-    global my_daudit
     global my_daudit_scheduler
     global g_worker
-    my_daudit = Daudit([])
     my_daudit_scheduler = DauditScheduler()
 
     logger = logging.getLogger()
