@@ -37,6 +37,9 @@ def get_database_list():
     print("RETURNING", db_list)
     return db_list
 
+def get_internal_connection():
+    return Connector('127.0.0.1', 'daudit_internal', 'root', 'rootroot')
+
 def add_config(host_name, db_name, username, password):
     config = configparser.ConfigParser()
     

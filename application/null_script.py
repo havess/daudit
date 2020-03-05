@@ -1,6 +1,6 @@
 import datetime
 import sys
-import mysql_integration.app as sql
+import mysql_integration.my_sql as sql
 
 def reset_all(db_conn, table_name):
     db_conn.reset_all(table_name)
