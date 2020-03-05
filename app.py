@@ -23,8 +23,7 @@ import configparser
 from mysql_integration.connector import Connector
 
 # Remove when we go to production
-SLACK_SIGNING_SECRET = os.environ["SLACK_SIGNING_SECRET"]
-slack_events_adapter = SlackEventAdapter(SLACK_SIGNING_SECRET, endpoint="/slack/events")
+slack_events_adapter = SlackEventAdapter(os.environ["SLACK_SIGNING_SECRET"], endpoint="/slack/events")
 client = slack.WebClient(os.environ["SLACK_API_TOKEN"], timeout=30)
 
 
@@ -74,17 +73,23 @@ def send_message(msg):
 def handle_message(event_data):
     data = event_data.get("event")
     channel_id = data.get("channel")
-    user_id = data.get("username")
+    user_id = data.get("user")
+
     text = data.get("text")
     builder = MessageBuilder(channel_id)
     print("GOT MESSAGE")
-    print(event_data)
-    print(data)
+    print("EVENT_DATA",event_data)
+    print("DATA", data)
     print("USERNAME")
     print(user_id)
     print(user_id == "daudit")
+    members = client.users_list()['members']
+    is_bot = False
+    for member in members:
+        if member['id'] == user_id:
+            is_bot = member['is_bot']
 
-    if text and data.get("subtype") is None:
+    if not is_bot:
         print("\n\nSENDING MESSAGE\n\n")
         commandNArgs = text.partition(' ')
         command = commandNArgs[0]
