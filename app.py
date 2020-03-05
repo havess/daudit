@@ -15,12 +15,13 @@ from slackeventsapi import SlackEventAdapter
 import slack
 
 from message_builder import MessageType, MessageData, RunMessageData, HelpMessageData, ErrorMessageData, InvalidArgsMessageData, \
-        UnknownCommandMessageData, MessageBuilder, DataError
+        UnknownCommandMessageData, MessageBuilder, DataError, ConfigMessageData
 
 from daudit import Daudit
 
 import configparser
 from mysql_integration.connector import Connector
+import mysql_integration.my_sql as sql
 
 # Remove when we go to production
 slack_events_adapter = SlackEventAdapter(os.environ["SLACK_SIGNING_SECRET"], endpoint="/slack/events")
@@ -77,12 +78,6 @@ def handle_message(event_data):
 
     text = data.get("text")
     builder = MessageBuilder(channel_id)
-    print("GOT MESSAGE")
-    print("EVENT_DATA",event_data)
-    print("DATA", data)
-    print("USERNAME")
-    print(user_id)
-    print(user_id == "daudit")
     members = client.users_list()['members']
     is_bot = False
     for member in members:
@@ -90,7 +85,6 @@ def handle_message(event_data):
             is_bot = member['is_bot']
 
     if not is_bot:
-        print("\n\nSENDING MESSAGE\n\n")
         commandNArgs = text.partition(' ')
         command = commandNArgs[0]
         args = commandNArgs[2]
@@ -113,7 +107,21 @@ def handle_message(event_data):
             except BaseException:
                 msg = builder.build(MessageType.INVALID_ARGS, InvalidArgsMessageData())
                 send_message(msg)
-
+        elif command == "config":
+            msg = builder.build(MessageType.CONFIG, ConfigMessageData())
+            send_message(msg)
+        elif command == "add":
+            # Add database
+            host_name, db_name, username, password = args.split(' ')
+            if not sql.add_config(host_name, db_name, username, password):
+                msg = builder.build(MessageType.INVALID_ARGS, InvalidArgsMessageData())
+                send_message(msg)
+        elif command == "modify":
+            # modify database
+            host_name, db_name, username, password = args.split(' ')
+            if not sql.modify_config(host_name, db_name, username, password):
+                msg = builder.build(MessageType.INVALID_ARGS, InvalidArgsMessageData())
+                send_message(msg)
         else:
             msg = builder.build(MessageType.UNKNOWN, UnknownCommandMessageData())
             send_message(msg)
@@ -174,7 +182,7 @@ def worker_function(name):
 def main():
     global my_daudit
     global g_worker
-    my_daudit = Daudit('NYC311Data', 'demo')
+    my_daudit = Daudit([])
 
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)

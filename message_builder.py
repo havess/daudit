@@ -6,7 +6,8 @@ class MessageType(Enum):
     HELP = 2
     ERROR = 3
     INVALID_ARGS = 4
-    UNKNOWN = 5
+    CONFIG = 5
+    UNKNOWN = 6
 
 # This defines the type of anomaly we have found in the data.
 class ErrorType(IntEnum):
@@ -63,6 +64,7 @@ class HelpMessageData(MessageData):
     def to_markdown_block(self):
         return  [create_block("The following commands are supported by Daudit: \n\n" +
                 "*run* - Initiate a full audit. \n" +
+                "*config* - Configure databases. \n" +
                 "*set* <key> <value> - Initiate a full audit.")]
 
 class ErrorMessageData(MessageData):
@@ -104,6 +106,12 @@ class ErrorMessageData(MessageData):
 class InvalidArgsMessageData(MessageData):
     def to_markdown_block(self):
         return [create_block("Invalid arguments, try typing 'help' for argument info. \n\n")]
+
+class ConfigMessageData(MessageData):
+    def to_markdown_block(self):
+        return [create_block("What would you like to configure: \n\n" +
+                "*add <host_name> <database_name> <username> <password>* - Add a database configuration. \n" +
+                "*modify <host_name> <database_name> <username> <password>* - Modify an existing database configuration.")]
 
 
 class UnknownCommandMessageData(MessageData):
