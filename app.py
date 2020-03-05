@@ -149,11 +149,16 @@ def respond():
     print(slack_payload)
     return action_handler(slack_payload)
 
+@slack_events_adapter.server.route('/daudit/jobs', methods=["GET", "POST"])
+def index():
+    print("HIT ENDPOINT", request.form)
+    return make_response("", 200)
 
 def worker_function(name):
     while True:
         while auditQueue.empty():
-            continue
+            # yield quantum
+            time.sleep(0)
         workType, data = auditQueue.get()
         if workType == WorkType.RUN_AUDIT:
             channel_id = data.get("channel")
@@ -191,7 +196,7 @@ def main():
 
     g_worker = threading.Thread(target=worker_function, args=(1,))
     g_worker.start()
-    slack_events_adapter.start(port=3000),
+    slack_events_adapter.start(port=3000)
 
 if __name__ == "__main__":
     try:
