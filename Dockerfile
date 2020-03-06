@@ -20,7 +20,8 @@ RUN chmod +x docker-entrypoint.sh
 COPY /application /home/application
 RUN chmod +x /home/application
 WORKDIR /home/application
-RUN pip3 install -r requirements.txt
+RUN pip3 --no-cache-dir install -r requirements.txt
 
+EXPOSE 3000
 ENTRYPOINT ["docker-entrypoint.sh"]
 CMD python3 app.py
