@@ -151,7 +151,7 @@ def respond():
 
 @slack_events_adapter.server.route('/daudit/jobs', methods=["GET", "POST"])
 def index():
-    print("HIT ENDPOINT", request.form)
+    print("HIT ENDPOINT", request.json)
     return make_response("", 200)
 
 def worker_function(name):

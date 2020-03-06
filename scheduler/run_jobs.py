@@ -4,8 +4,10 @@ from datetime import datetime
 
 CONFIG_PATH = 'config.json'
 DAUDIT_COMMAND = 'python3 run_jobs.py'
-# TODO The port should not be hard-coded, it should be determined through config
-DAUDIT_URL = "localhost:3000"
+# TODO The port should not be hard-coded, it should be determined through some sort of Daudit config
+DAUDIT_PORT = 3000
+DAUDIT_URL = "http://127.0.0.1:%d/daudit/jobs" % DAUDIT_PORT
+
 
 def main():
     with open(CONFIG_PATH, 'r+') as config_file:
@@ -20,12 +22,20 @@ def main():
                 print("\t%s" % key)
 
         # Send the jobs
-        requests.post(url=DAUDIT_URL, data=list_of_jobs)
+        print("Sending: " + str(list_of_jobs))
+        r = requests.post(url=DAUDIT_URL, json=list_of_jobs)
+
+        print("Response from Daudit: " + str(r.status_code))
+        if r.status_code == 200:
+            print("Jobs successfully posted to run on Daudit!")
+        else:
+            print("ERROR: jobs not successfully posted on Daudit!")
 
         # Update last ran field in file
         config_file.seek(0)
         config_file.write(json.dumps(config_json))
         config_file.truncate()
+
 
 if __name__ == "__main__":
     try:
