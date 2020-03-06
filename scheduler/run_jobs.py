@@ -1,9 +1,10 @@
+#!/usr/bin/env python3
+
 import json
 import requests
 from datetime import datetime
 
 CONFIG_PATH = 'config.json'
-DAUDIT_COMMAND = 'python3 run_jobs.py'
 # TODO The port should not be hard-coded, it should be determined through some sort of Daudit config
 DAUDIT_PORT = 3000
 DAUDIT_URL = "http://127.0.0.1:%d/daudit/jobs" % DAUDIT_PORT

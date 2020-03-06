@@ -1,11 +1,12 @@
 from crontab import CronTab
 import json
+import os
 
 CONFIG_PATH = 'config.json'
-DAUDIT_COMMAND = 'python3 run_jobs.py'
+DAUDIT_COMMAND = '%s/run_jobs.py > %s/out.log 2>&1' % (os.getcwd(), os.getcwd())
 
 
-def create_or_update_job_config(self, config, db_host, database, table, hour, freq_in_days):
+def create_or_update_job_config(config, db_host, database, table, hour, freq_in_days):
     key = '%s:%s:%s' % (db_host, database, table)
     if key in config:
         config[key]['hour_of_day'] = min(hour, int(config[key]['hour_of_day']))
@@ -18,20 +19,28 @@ def create_or_update_job_config(self, config, db_host, database, table, hour, fr
 class DauditScheduler:
     def __init__(self):
         self.cron = CronTab(user=True)
-        if len(self.cron.find_command(DAUDIT_COMMAND)) == 0:
-            job = self.cron.new(command=DAUDIT_COMMAND)
-            job.hour.every(1)
-            self.cron.write()
+        for job in self.cron.find_command(DAUDIT_COMMAND):
+            self.cron.remove(job)
+        job = self.cron.new(command=DAUDIT_COMMAND)
+        job.every(1).minutes()
+        self.cron.write()
 
     def schedule_job(self, db_host, database, table, hour=0, freq_in_days=1):
         if hour not in range(0, 24):
             return {"status": False, "message": "Hour must be in range [0, 24)"}
 
-        with open(CONFIG_PATH, 'w+') as config_file:
-            config_json = json.load(config_file)
+        # Ensure config file exists, if not then create it with appropriate empty JSON
+        if os.path.isfile(CONFIG_PATH) and os.access(CONFIG_PATH, os.R_OK):
+            print("Config file exists and is readable")
+        else:
+            with open(CONFIG_PATH, 'a+') as f:
+                f.write(json.dumps({}))
+
+        with open(CONFIG_PATH, 'r+') as f:
+            config_json = json.load(f)
             update_json = create_or_update_job_config(config_json, db_host, database, table, hour, freq_in_days)
-            config_file.seek(0)
-            config_file.write(json.dumps(update_json))
-            config_file.truncate()
+            f.seek(0)
+            f.write(json.dumps(update_json))
+            f.truncate()
 
         return {"status": True, "message": ""}
