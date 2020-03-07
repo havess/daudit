@@ -11,7 +11,8 @@ ENV DAUDIT_INTERNAL_PASS=$daudit_internal_pass
 RUN apt-get update \
     && apt-get install -y sudo \
     && sudo apt-get install -y python3-pip \
-    && sudo apt-get install -y mysql-server
+    && sudo apt-get install -y mysql-server \
+    && sudo apt-get -y install cron
 
 COPY docker-entrypoint.sh /usr/local/bin
 RUN ln -s /usr/local/bin/docker-entrypoint.sh / # backwards compatible
@@ -20,7 +21,7 @@ RUN chmod +x docker-entrypoint.sh
 COPY /application /home/application
 RUN chmod +x /home/application
 WORKDIR /home/application
-RUN pip3 --no-cache-dir install -r requirements.txt
+RUN pip3 install -r requirements.txt
 
 EXPOSE 3000
 ENTRYPOINT ["docker-entrypoint.sh"]

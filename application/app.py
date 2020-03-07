@@ -15,9 +15,10 @@ from slackeventsapi import SlackEventAdapter
 import slack
 
 from message_builder import MessageType, MessageData, RunMessageData, HelpMessageData, ErrorMessageData, InvalidArgsMessageData, \
-        UnknownCommandMessageData, MessageBuilder, DataError, ConfigMessageData
+        UnknownCommandMessageData, MessageBuilder, DataError, ConfigMessageData, ConfirmationMessageData, ListMessageData
 
 from daudit import Daudit
+from scheduler.scheduler import DauditScheduler
 
 import configparser
 from mysql_integration.connector import Connector
@@ -36,29 +37,8 @@ class WorkType(Enum):
 auditQueue = queue.Queue()
 
 my_daudit = None
+my_daudit_scheduler = None
 g_worker = None
-
-def set_config(args: str):
-    args = args.text()
-    configList = args.split(' ')
-
-    if len(configList) != 2:
-        raise Exception()
-
-    key = configList[0]
-    val = configList[1]
-
-    valid_options = ["database", "table"]
-    if key not in valid_options:
-        raise Exception()
-
-    config = configparser.ConfigParser()
-    config.read("config.ini")
-    config.set("DEFAULT", key, val)
-
-    with open("config.ini", "w") as configfile:
-        config.write(configfile)
-
 
 def send_message(msg):
     # Post the message in Slack
@@ -88,43 +68,36 @@ def handle_message(event_data):
         commandNArgs = text.partition(' ')
         command = commandNArgs[0]
         args = commandNArgs[2]
-        if command == "run":
+        if command == "run_audit":
             if my_daudit.validate_table_name(args):
                 msg = builder.build(MessageType.RUN, RunMessageData(args))
                 send_message(msg)
                 auditQueue.put((WorkType.RUN_AUDIT, data))
+                msg = builder.build(MessageType.CONFIRMATION, ConfirmationMessageData("run_audit"))
             else:
                 msg = builder.build(MessageType.INVALID_ARGS, InvalidArgsMessageData())
-                send_message(msg)
-
         elif command == "help":
             msg = builder.build(MessageType.HELP, HelpMessageData())
-            send_message(msg)
-
-        elif command == "set":
-            try:
-                return set_config(args)
-            except BaseException:
+        elif command == "create_job":
+            host_name, db_name, table_name, time = args.split(' ')
+            # TODO: Better handling of time format
+            time = int(time)
+            res = my_daudit_scheduler.schedule_job(host_name, db_name, table_name, time)
+            print(res, host_name, db_name, table_name, time)
+            if res["status"] == True:
+                msg = builder.build(MessageType.CONFIRMATION, ConfirmationMessageData("create_job"))
+            else:
                 msg = builder.build(MessageType.INVALID_ARGS, InvalidArgsMessageData())
-                send_message(msg)
-        elif command == "config":
-            msg = builder.build(MessageType.CONFIG, ConfigMessageData())
-            send_message(msg)
-        elif command == "add":
-            # Add database
-            host_name, db_name, username, password = args.split(' ')
-            if not sql.add_config(host_name, db_name, username, password):
-                msg = builder.build(MessageType.INVALID_ARGS, InvalidArgsMessageData())
-                send_message(msg)
-        elif command == "modify":
-            # modify database
-            host_name, db_name, username, password = args.split(' ')
-            if not sql.modify_config(host_name, db_name, username, password):
-                msg = builder.build(MessageType.INVALID_ARGS, InvalidArgsMessageData())
-                send_message(msg)
+        elif command == "list_databases":
+            databases = sql.get_database_list()
+            msg = builder.build(MessageType.LIST, ListMessageData("Database list", databases))
+        elif command == "list_jobs":
+            jobs = my_daudit_scheduler.get_job_list()
+            msg = builder.build(MessageType.LIST, ListMessageData("Job list", jobs))
         else:
             msg = builder.build(MessageType.UNKNOWN, UnknownCommandMessageData())
-            send_message(msg)
+    
+        send_message(msg)
     return 200
 
 @slack_events_adapter.on(event="action")
@@ -186,8 +159,10 @@ def worker_function(name):
 
 def main():
     global my_daudit
+    global my_daudit_scheduler
     global g_worker
     my_daudit = Daudit([])
+    my_daudit_scheduler = DauditScheduler()
 
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)

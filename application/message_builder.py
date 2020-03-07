@@ -2,12 +2,15 @@ from enum import Enum, IntEnum
 
 # This defines what type of message we are issuing.
 class MessageType(Enum):
-    RUN = 1
-    HELP = 2
-    ERROR = 3
-    INVALID_ARGS = 4
-    CONFIG = 5
-    UNKNOWN = 6
+    RUN             = 1
+    HELP            = 2
+    ERROR           = 3
+    INVALID_ARGS    = 4
+    CONFIG          = 5
+    UNKNOWN         = 6
+    CONFIRMATION    = 7
+    LIST            = 8
+
 
 # This defines the type of anomaly we have found in the data.
 class ErrorType(IntEnum):
@@ -63,9 +66,10 @@ class RunMessageData(MessageData):
 class HelpMessageData(MessageData):
     def to_markdown_block(self):
         return  [create_block("The following commands are supported by Daudit: \n\n" +
-                "*run* - Initiate a full audit. \n" +
-                "*config* - Configure databases. \n" +
-                "*set* <key> <value> - Initiate a full audit.")]
+                "*run_audit <job>* - Initiate a full audit. \n" +
+                "*create_job <db_host> <db_name> <table_name> <time>* - Create job to run periodically. \n" +
+                "*list_databases* - List databases. \n" +
+                "*list_jobs* - Initiate a full audit.")]
 
 class ErrorMessageData(MessageData):
     def __init__(self, errs):
@@ -113,11 +117,25 @@ class ConfigMessageData(MessageData):
                 "*add <host_name> <database_name> <username> <password>* - Add a database configuration. \n" +
                 "*modify <host_name> <database_name> <username> <password>* - Modify an existing database configuration.")]
 
+class ConfirmationMessageData(MessageData):
+    def __init__(self, confirmed):
+        self._confirmed = confirmed
+    def to_markdown_block(self):
+        return [create_block("Operation `" + self._confirmed + "` completed successfully.\n\n")]
 
 class UnknownCommandMessageData(MessageData):
     def to_markdown_block(self):
         return [create_block("Invalid command, try typing 'help'. \n\n")]
 
+class ListMessageData(MessageData):
+    def __init__(self, list_name, items):
+        self._items = items
+        self._list_name = list_name
+    def to_markdown_block(self):
+        list_str  = ""
+        for item in self._items:
+            list_str += "*" + item + "*\n"
+        return [create_block(self._list_name + "\n\n" + list_str)]
 
 class MessageBuilder:
     DIVIDER_BLOCK = {"type": "divider"}

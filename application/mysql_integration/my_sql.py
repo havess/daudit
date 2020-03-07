@@ -23,6 +23,20 @@ def get_connection(db_descriptor):
 
     return Connector(host, database, user_name, password)
 
+def get_database_list():
+    config = configparser.ConfigParser()
+    
+    config.read(PATH)
+    db_list = []
+    for db in config:
+        if db == 'DEFAULT':
+            continue
+        host, name = db.split(":")
+        db_list.append("Name: " + name + " Host: " + host)
+
+    print("RETURNING", db_list)
+    return db_list
+
 def add_config(host_name, db_name, username, password):
     config = configparser.ConfigParser()
     

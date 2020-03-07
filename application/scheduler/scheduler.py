@@ -5,7 +5,6 @@ import os
 CONFIG_PATH = 'config.json'
 DAUDIT_COMMAND = '%s/run_jobs.py > %s/out.log 2>&1' % (os.getcwd(), os.getcwd())
 
-
 def create_or_update_job_config(config, db_host, database, table, hour, freq_in_days):
     key = '%s:%s:%s' % (db_host, database, table)
     if key in config:
@@ -24,6 +23,14 @@ class DauditScheduler:
         job = self.cron.new(command=DAUDIT_COMMAND)
         job.every(1).minutes()
         self.cron.write()
+           
+    def get_job_list(self):
+        with open(CONFIG_PATH, 'r+') as config_file:
+            config_json = json.load(config_file)
+            list_of_jobs = []
+            for (key, _) in config_json.items():
+                list_of_jobs.append(key)
+            return list_of_jobs
 
     def schedule_job(self, db_host, database, table, hour=0, freq_in_days=1):
         if hour not in range(0, 24):
