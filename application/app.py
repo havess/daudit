@@ -14,8 +14,7 @@ import certifi
 from slackeventsapi import SlackEventAdapter
 import slack
 
-from message_builder import MessageType, MessageData, RunMessageData, HelpMessageData, ErrorMessageData, InvalidArgsMessageData, \
-        UnknownCommandMessageData, MessageBuilder, DataError, ConfigMessageData, ConfirmationMessageData, ListMessageData
+from message_builder import *
 
 from daudit import Daudit
 from scheduler.scheduler import DauditScheduler
@@ -55,49 +54,69 @@ def handle_message(event_data):
     data = event_data.get("event")
     channel_id = data.get("channel")
     user_id = data.get("user")
-
-    text = data.get("text")
-    builder = MessageBuilder(channel_id)
     members = client.users_list()['members']
     is_bot = False
     for member in members:
         if member['id'] == user_id:
             is_bot = member['is_bot']
 
-    if not is_bot:
-        commandNArgs = text.partition(' ')
-        command = commandNArgs[0]
-        args = commandNArgs[2]
-        if command == "run_audit":
-            if my_daudit.validate_table_name(args):
-                msg = builder.build(MessageType.RUN, RunMessageData(args))
-                send_message(msg)
-                auditQueue.put((WorkType.RUN_AUDIT, data))
-                msg = builder.build(MessageType.CONFIRMATION, ConfirmationMessageData("run_audit"))
-            else:
-                msg = builder.build(MessageType.INVALID_ARGS, InvalidArgsMessageData())
-        elif command == "help":
-            msg = builder.build(MessageType.HELP, HelpMessageData())
-        elif command == "create_job":
-            host_name, db_name, table_name, time = args.split(' ')
-            # TODO: Better handling of time format
-            time = int(time)
-            res = my_daudit_scheduler.schedule_job(host_name, db_name, table_name, time)
-            print(res, host_name, db_name, table_name, time)
-            if res["status"] == True:
-                msg = builder.build(MessageType.CONFIRMATION, ConfirmationMessageData("create_job"))
-            else:
-                msg = builder.build(MessageType.INVALID_ARGS, InvalidArgsMessageData())
-        elif command == "list_databases":
-            databases = sql.get_database_list()
-            msg = builder.build(MessageType.LIST, ListMessageData("Database list", databases))
-        elif command == "list_jobs":
-            jobs = my_daudit_scheduler.get_job_list()
-            msg = builder.build(MessageType.LIST, ListMessageData("Job list", jobs))
-        else:
-            msg = builder.build(MessageType.UNKNOWN, UnknownCommandMessageData())
-    
+    if not is_bot and data.get('channel_type') == 'im':
+        convo_list = client.users_conversations()
+        channels = []
+        for channel in convo_list['channels']:
+            channels.append(channel['name'])
+        print("CHANNELS", channels)
+        builder = MessageBuilder(channel_id)
+        msg = builder.build(MessageType.CONFIRMATION, DMMessageData(channels))
         send_message(msg)
+    return 200
+
+
+
+# ============== App mention Events ============= #
+# When a user mentions the app in a channel, the event type will be 'app_mention'.
+# Here we'll link the message callback to the 'app_mention' event.
+@slack_events_adapter.on(event="app_mention")
+def handle_mention(event_data):
+    data = event_data.get("event")
+    channel_id = data.get("channel")
+    user_id = data.get("user")
+    text = data.get("text")
+
+    builder = MessageBuilder(channel_id)
+    commandNArgs = text.split(' ', 1)[1].partition(' ')
+    command = commandNArgs[0]
+    args = commandNArgs[2]
+    if command == "run_audit":
+        if my_daudit.validate_table_name(args):
+            msg = builder.build(MessageType.RUN, RunMessageData(args))
+            send_message(msg)
+            auditQueue.put((WorkType.RUN_AUDIT, data))
+            msg = builder.build(MessageType.CONFIRMATION, ConfirmationMessageData("run_audit"))
+        else:
+            msg = builder.build(MessageType.INVALID_ARGS, InvalidArgsMessageData())
+    elif command == "help":
+        msg = builder.build(MessageType.HELP, HelpMessageData())
+    elif command == "create_job":
+        host_name, db_name, table_name, time = args.split(' ')
+        # TODO: Better handling of time format
+        time = int(time)
+        res = my_daudit_scheduler.schedule_job(host_name, db_name, table_name, time)
+        print(res, host_name, db_name, table_name, time)
+        if res["status"] == True:
+            msg = builder.build(MessageType.CONFIRMATION, ConfirmationMessageData("create_job"))
+        else:
+            msg = builder.build(MessageType.INVALID_ARGS, InvalidArgsMessageData())
+    elif command == "list_databases":
+        databases = sql.get_database_list()
+        msg = builder.build(MessageType.LIST, ListMessageData("Database list", databases))
+    elif command == "list_jobs":
+        jobs = my_daudit_scheduler.get_job_list()
+        msg = builder.build(MessageType.LIST, ListMessageData("Job list", jobs))
+    else:
+        msg = builder.build(MessageType.UNKNOWN, UnknownCommandMessageData())
+
+    send_message(msg)
     return 200
 
 @slack_events_adapter.on(event="action")
@@ -123,8 +142,13 @@ def respond():
     return action_handler(slack_payload)
 
 @slack_events_adapter.server.route('/daudit/jobs', methods=["GET", "POST"])
-def index():
-    print("HIT ENDPOINT", request.json)
+def parse_jobs():
+    # Get list of jobs
+    job_list = []
+    for job in request.json:
+        job_list.append(job)
+    # Add to auditQueue
+    auditQueue.put((WorkType.RUN_AUDIT, job_list))
     return make_response("", 200)
 
 def worker_function(name):
@@ -136,25 +160,19 @@ def worker_function(name):
         if workType == WorkType.RUN_AUDIT:
             channel_id = data.get("channel")
             builder = MessageBuilder(channel_id)
-            print("STARTING AUDIT")
             errs = my_daudit.run_audit()
-            print("DONE AUDIT")
             if len(errs):
                 msg = builder.build(MessageType.ERROR, ErrorMessageData(errs))
                 send_message(msg)
         elif workType == WorkType.ACKNOWLEDGE_ERROR:
-            print(data)
             action_data = data.get("actions")[0]
             alert_id = action_data.get("block_id")
             user_name = data.get("user").get("username")
             my_daudit.acknowledge_alert(alert_id, user_name)
-            print("Acknowledgeing error")
         elif workType == WorkType.INCREASE_CONF_INTERVAL:
-            print(data)
             action_data = data.get("actions")[0]
             alert_id = action_data.get("block_id")
             my_daudit.alert_not_useful(alert_id)
-            print("Increasing confidence interval")
 
 
 def main():

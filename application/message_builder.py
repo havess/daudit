@@ -71,6 +71,15 @@ class HelpMessageData(MessageData):
                 "*list_databases* - List databases. \n" +
                 "*list_jobs* - Initiate a full audit.")]
 
+class DMMessageData(MessageData):
+    def __init__(self, channels):
+        self._channels = channels
+    def to_markdown_block(self):
+        channel_str = " "
+        for ch in self._channels:
+            channel_str += "#" + ch + " "
+        return [create_block("Daudit does not currently support DMs, please mention daudit in one of the following channels:" + channel_str)]
+
 class ErrorMessageData(MessageData):
     def __init__(self, errs):
         self.errors = errs
