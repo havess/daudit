@@ -4,6 +4,7 @@ import json
 import requests
 import os
 from datetime import datetime
+from pytz import timezone
 
 # TODO The port should not be hard-coded, it should be determined through some sort of Daudit config
 DAUDIT_PORT = 3010
@@ -18,7 +19,7 @@ def main():
             config_json = json.load(config_file)
             print("Sending the following jobs:")
             list_of_jobs = []
-            hour = datetime.now().hour
+            hour = datetime.now(timezone('US/Eastern')).hour
             for (key, value) in config_json.items():
                 if value["hour_of_day"] == hour:
                     list_of_jobs.append({"id": key})
