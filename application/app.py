@@ -126,7 +126,7 @@ def handle_mention(event_data):
             if args in config_json:
                 msg = builder.build(MessageType.RUN, RunMessageData(args))
                 send_message(msg)
-                host_name, db_name, table_name = args.split(":")
+                host_name, db_name, table_name = args.split("/")
                 audit_job = Job(table_name, db_name, db_host, config_json[args]['date_col'])
                 auditQueue.put((WorkType.RUN_AUDIT, audit_job))
                 msg = builder.build(MessageType.CONFIRMATION, ConfirmationMessageData("run_audit"))

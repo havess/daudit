@@ -123,6 +123,13 @@ class InvalidArgsMessageData(MessageData):
     def to_markdown_block(self):
         return [create_block("Invalid arguments, try typing 'help' for argument info. \n\n")]
 
+
+class DauditErrorMessageData(MessageData):
+    def __init__(self, msg):
+        self.msg = msg
+    def to_markdown_block(self):
+        return [create_block(msg)]
+
 class ConfigMessageData(MessageData):
     def to_markdown_block(self):
         return [create_block("What would you like to configure: \n\n" +
