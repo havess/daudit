@@ -2,8 +2,10 @@ from crontab import CronTab
 import json
 import os
 
-CONFIG_PATH = 'config.json'
-DAUDIT_COMMAND = '%s/run_jobs.py > %s/out.log 2>&1' % (os.getcwd(), os.getcwd())
+CONFIG_PATH = 'scheduler/config.json'
+# TODO: This depends on the directory structure of Docker, must be a better way to determine the path
+DAUDIT_COMMAND = '(cd /home/application/scheduler/ && echo "*** `date -u` ***" >> out.log && run_jobs.py >> out.log)'
+
 
 def create_or_update_job_config(config, db_host, database, table, hour, freq_in_days):
     key = '%s/%s/%s' % (db_host, database, table)
@@ -24,7 +26,7 @@ class DauditScheduler:
         job = self.cron.new(command=DAUDIT_COMMAND)
         job.every(1).minutes()
         self.cron.write()
-           
+
     def get_job_list(self):
         with open(CONFIG_PATH, 'r+') as config_file:
             config_json = json.load(config_file)
@@ -71,7 +73,6 @@ class DauditScheduler:
 
         return True, ""
 
-
     def delete_job(self, job):
         # Ensure config file exists
         if os.path.isfile(CONFIG_PATH) and os.access(CONFIG_PATH, os.R_OK):
@@ -88,4 +89,3 @@ class DauditScheduler:
             f.truncate()
 
         return True, ""
-
