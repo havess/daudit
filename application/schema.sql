@@ -91,10 +91,10 @@ create table if not exists alert_table ( \
     foreign key (notification_id) references notification_type(notification_id));
 
 -- Populate notification_type with preset anomaly types
-insert into notification_type (notification_id, notification_type_description)
-    values
+INSERT INTO notification_type (notification_id, notification_type_description)
+    VALUES
         (1, "NULL_PROPORTION_ANOMALY"),
         (2, "BINARY_RELATIONS_ANOMALY");
 
-insert into monitored_tables(table_name, database_name, database_host, created_date, is_activated)
-    VALUES ("NYC311Data", "daudit", "localhost", current_timestamp, 1);
+INSERT INTO monitored_tables(table_name, database_name, database_host, created_date, is_activated)
+    VALUES ("NYC311Data", "daudit", "ec2-34-236-66-104.compute-1.amazonaws.com", current_timestamp, 1);

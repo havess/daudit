@@ -124,11 +124,12 @@ def handle_mention(event_data):
             log(config_json)
 
             if args in config_json:
-                msg = builder.build(MessageType.RUN, RunMessageData(args))
-                send_message(msg)
                 db_host, db_name, table_name = args.split("/")
                 audit_job = Job(table_name, db_name, db_host, config_json[args]['date_col'])
                 auditQueue.put((WorkType.RUN_AUDIT, audit_job))
+
+                msg = builder.build(MessageType.RUN, RunMessageData(table_name))
+                send_message(msg)
                 msg = builder.build(MessageType.CONFIRMATION, ConfirmationMessageData("run_audit"))
             else:
                 # TODO: This should inform user that they entered an invalid job, maybe prompt them for list of jobs?
