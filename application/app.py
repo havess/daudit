@@ -204,7 +204,7 @@ def main():
 
     g_worker = threading.Thread(target=worker_function, args=(1,))
     g_worker.start()
-    slack_events_adapter.start(port=3000, host='0.0.0.0')
+    slack_events_adapter.start(port=3010, host='0.0.0.0')
 
 if __name__ == "__main__":
     try:

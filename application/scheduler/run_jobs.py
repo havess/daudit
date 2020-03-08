@@ -6,7 +6,7 @@ from datetime import datetime
 
 CONFIG_PATH = 'config.json'
 # TODO The port should not be hard-coded, it should be determined through some sort of Daudit config
-DAUDIT_PORT = 3000
+DAUDIT_PORT = 3010
 DAUDIT_URL = "http://127.0.0.1:%d/daudit/jobs" % DAUDIT_PORT
 
 
