@@ -2,7 +2,7 @@ from crontab import CronTab
 import json
 import os
 
-CONFIG_PATH = './jobs.json'
+CONFIG_PATH = 'jobs.json'
 DAUDIT_COMMAND = '%s/run_jobs.py > %s/out.log 2>&1' % (os.getcwd(), os.getcwd())
 
 def create_or_update_job_config(config, db_host, database, table, hour, freq_in_days):
