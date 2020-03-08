@@ -44,7 +44,8 @@ def extract_raw_text(text):
         # This means the text was formatted as "<url|raw>" and we need to extract just raw
         return text.split('|')[1][:-1]
 
-    else log("PARSING TEXT ERROR")
+    log("PARSING TEXT ERROR")
+    return text
 
 
 class WorkType(Enum):
