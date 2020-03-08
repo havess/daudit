@@ -7,7 +7,7 @@ from datetime import datetime
 from pytz import timezone
 
 # TODO The port should not be hard-coded, it should be determined through some sort of Daudit config
-DAUDIT_PORT = 3010
+DAUDIT_PORT = 3000
 DAUDIT_URL = "http://127.0.0.1:%d/daudit/jobs" % DAUDIT_PORT
 CONFIG_PATH = 'config.json'
 
@@ -19,7 +19,8 @@ def main():
             config_json = json.load(config_file)
             print("Sending the following jobs:")
             list_of_jobs = []
-            hour = datetime.now(timezone('US/Eastern')).hour
+            tz = 'US/Eastern'
+            hour = datetime.now(timezone(tz)).hour
             for (key, value) in config_json.items():
                 if value["hour_of_day"] == hour:
                     list_of_jobs.append({"id": key})
@@ -27,6 +28,7 @@ def main():
                     print("\t%s" % key)
 
             # Send the jobs
+            print("Current time (%s): %s" % (datetime.now(), tz))
             print("Sending: " + str(list_of_jobs))
             r = requests.post(url=DAUDIT_URL, json=list_of_jobs)
 
