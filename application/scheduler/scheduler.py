@@ -2,15 +2,8 @@ from crontab import CronTab
 import json
 import os
 
-<<<<<<< HEAD
-CONFIG_PATH = 'scheduler/config.json'
-# TODO: This depends on the directory structure of Docker, must be a better way to determine the path
-DAUDIT_COMMAND = '(cd /home/application/scheduler/ && echo "*** `date -u` ***" >> out.log && ./run_jobs.py >> out.log)'
-
-=======
 CONFIG_PATH = './jobs.json'
 DAUDIT_COMMAND = '%s/run_jobs.py > %s/out.log 2>&1' % (os.getcwd(), os.getcwd())
->>>>>>> refactoring
 
 def create_or_update_job_config(config, db_host, database, table, hour, freq_in_days):
     key = '%s/%s/%s' % (db_host, database, table)
@@ -25,15 +18,6 @@ def create_or_update_job_config(config, db_host, database, table, hour, freq_in_
 
 class DauditScheduler:
     def __init__(self):
-<<<<<<< HEAD
-        self.cron = CronTab(user=True)
-        for job in self.cron.find_command(DAUDIT_COMMAND):
-            self.cron.remove(job)
-        job = self.cron.new(command=DAUDIT_COMMAND)
-        job.every(1).minutes()
-        self.cron.write()
-
-=======
         pass
         # self.cron = CronTab(user=True)
         # for job in self.cron.find_command(DAUDIT_COMMAND):
@@ -42,7 +26,6 @@ class DauditScheduler:
         # job.every(1).minutes()
         # self.cron.write()
            
->>>>>>> refactoring
     def get_job_list(self):
         with open(CONFIG_PATH, 'r+') as config_file:
             config_json = json.load(config_file)
