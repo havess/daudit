@@ -68,6 +68,8 @@ class HelpMessageData(MessageData):
         return  [create_block("The following commands are supported by Daudit: \n\n" +
                 "*run_audit <job>* - Initiate a full audit. \n" +
                 "*create_job <db_host> <db_name> <table_name> <time>* - Create job to run periodically. \n" +
+                "*update_job <db_host>/<db_name>/<table_name> <time> <frequency_in_days>* - Update scheduled job parameters. \n" +
+                "*delete_job <db_host>/<db_name>/<table_name>* - Delete scheduled job. \n" +
                 "*list_databases* - List databases. \n" +
                 "*list_jobs* - Initiate a full audit.")]
 

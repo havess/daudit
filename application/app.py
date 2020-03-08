@@ -65,7 +65,6 @@ def handle_message(event_data):
         channels = []
         for channel in convo_list['channels']:
             channels.append(channel['name'])
-        print("CHANNELS", channels)
         builder = MessageBuilder(channel_id)
         msg = builder.build(MessageType.CONFIRMATION, DMMessageData(channels))
         send_message(msg)
@@ -101,10 +100,26 @@ def handle_mention(event_data):
         host_name, db_name, table_name, time = args.split(' ')
         # TODO: Better handling of time format
         time = int(time)
-        res = my_daudit_scheduler.schedule_job(host_name, db_name, table_name, time)
-        print(res, host_name, db_name, table_name, time)
-        if res["status"] == True:
+        res, err_msg = my_daudit_scheduler.schedule_job(host_name, db_name, table_name, time)
+        if res == True:
             msg = builder.build(MessageType.CONFIRMATION, ConfirmationMessageData("create_job"))
+        else:
+            msg = builder.build(MessageType.INVALID_ARGS, InvalidArgsMessageData())
+    elif command == "update_job":
+        job_id, time, freq = args.split(" ")
+        time = int(time)
+        freq = int(freq)
+        res, err_msg = my_daudit_scheduler.update_job(job_id, time, freq)
+        if res == True:
+            msg = builder.build(MessageType.CONFIRMATION, ConfirmationMessageData("update_job"))
+        else:
+            msg = builder.build(MessageType.INVALID_ARGS, InvalidArgsMessageData())
+
+    elif command == "delete_job":
+        job_id = args
+        res, err_msg = my_daudit_scheduler.delete_job(job_id)
+        if res == True:
+            msg = builder.build(MessageType.CONFIRMATION, ConfirmationMessageData("delete_job"))
         else:
             msg = builder.build(MessageType.INVALID_ARGS, InvalidArgsMessageData())
     elif command == "list_databases":

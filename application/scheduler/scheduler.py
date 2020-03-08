@@ -6,10 +6,11 @@ CONFIG_PATH = 'config.json'
 DAUDIT_COMMAND = '%s/run_jobs.py > %s/out.log 2>&1' % (os.getcwd(), os.getcwd())
 
 def create_or_update_job_config(config, db_host, database, table, hour, freq_in_days):
-    key = '%s:%s:%s' % (db_host, database, table)
+    key = '%s/%s/%s' % (db_host, database, table)
     if key in config:
-        config[key]['hour_of_day'] = min(hour, int(config[key]['hour_of_day']))
-        config[key]['freq_in_days'] = min(freq_in_days, int(config[key]['freq_in_days']))
+        config[key]['hour_of_day'] = hour
+        if freq_in_days > 0:
+            config[key]['freq_in_days'] = freq_in_days
     else:
         config[key] = {'hour_of_day': hour, 'freq_in_days': freq_in_days, 'last_ran': ""}
     return config
@@ -28,13 +29,13 @@ class DauditScheduler:
         with open(CONFIG_PATH, 'r+') as config_file:
             config_json = json.load(config_file)
             list_of_jobs = []
-            for (key, _) in config_json.items():
-                list_of_jobs.append(key)
+            for (key, val) in config_json.items():
+                list_of_jobs.append(key + " " + str(val['hour_of_day']) + " " + str(val['freq_in_days']))
             return list_of_jobs
 
     def schedule_job(self, db_host, database, table, hour=0, freq_in_days=1):
         if hour not in range(0, 24):
-            return {"status": False, "message": "Hour must be in range [0, 24)"}
+            return False, "Hour must be in range [0, 24)"
 
         # Ensure config file exists, if not then create it with appropriate empty JSON
         if os.path.isfile(CONFIG_PATH) and os.access(CONFIG_PATH, os.R_OK):
@@ -50,4 +51,41 @@ class DauditScheduler:
             f.write(json.dumps(update_json))
             f.truncate()
 
-        return {"status": True, "message": ""}
+        return True, ""
+
+    def update_job(self, job_id, time, frequency):
+        # Ensure config file exists
+        if os.path.isfile(CONFIG_PATH) and os.access(CONFIG_PATH, os.R_OK):
+            pass
+        else:
+            return False, "No jobs seem to exist, config file empty."
+
+        host, database, table = job_id.split("/")
+
+        with open(CONFIG_PATH, 'r+') as f:
+            config_json = json.load(f)
+            update_json = create_or_update_job_config(config_json, host, database, table, time, frequency)
+            f.seek(0)
+            f.write(json.dumps(update_json))
+            f.truncate()
+
+        return True, ""
+
+
+    def delete_job(self, job):
+        # Ensure config file exists
+        if os.path.isfile(CONFIG_PATH) and os.access(CONFIG_PATH, os.R_OK):
+            pass
+        else:
+            return False, "No jobs seem to exist, config file empty."
+
+        with open(CONFIG_PATH, 'r+') as f:
+            config_json = json.load(f)
+            print("CONFIG JSON", config_json)
+            config_json.pop(job)
+            f.seek(0)
+            f.write(json.dumps(config_json))
+            f.truncate()
+
+        return True, ""
+
