@@ -40,7 +40,7 @@ read SLACK_API_TOKEN
 add_configs
 
 docker build -t dauditzain --build-arg slack_api_token=$SLACK_API_TOKEN --build-arg slack_sign_secret=$SLACK_SIGNING_SECRET --build-arg daudit_internal_pass=$DAUDIT_INTERNAL_PASS ./
-docker run --rm --name dauditzain -d -p 3010:3010 dauditzain
+docker run --rm --name dauditzain -d -p 3010:3010 dauditzain -e PYTHONUNBUFFERED=0
 
 ip=$(curl https://checkip.amazonaws.com)
 echo "\n***YOUR IP ADDRESS TO SUPPLY TO EVENT SUBSCRIPTION***"
