@@ -4,7 +4,7 @@ import os
 
 CONFIG_PATH = 'scheduler/config.json'
 # TODO: This depends on the directory structure of Docker, must be a better way to determine the path
-DAUDIT_COMMAND = '(cd /home/application/scheduler/ && echo "*** `date -u` ***" >> out.log && run_jobs.py >> out.log)'
+DAUDIT_COMMAND = '(cd /home/application/scheduler/ && echo "*** `date -u` ***" >> out.log && ./run_jobs.py >> out.log)'
 
 
 def create_or_update_job_config(config, db_host, database, table, hour, freq_in_days):
