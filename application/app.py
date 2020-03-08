@@ -52,9 +52,6 @@ def send_message(msg):
 # Here we'll link the message callback to the 'message' event.
 @slack_events_adapter.on(event="message")
 def handle_message(event_data):
-
-    print("\n\n\nHANDLING MESSAGE\n\n\n", file=sys.stderr)
-
     data = event_data.get("event")
     channel_id = data.get("channel")
     user_id = data.get("user")
