@@ -11,8 +11,9 @@ create table if not exists monitored_tables ( \
     table_id integer not null auto_increment, \
     table_name varchar(100) not null, \
     database_name varchar(32) not null, \
-    created_date datetime not null, \
-    is_activated boolean not null, \
+    database_host varchar(100) not null, \
+    created_date datetime not null default current_timestamp, \
+    is_activated boolean not null default 1, \
     primary key(table_id));
 
 create table if not exists column_table ( \
@@ -95,5 +96,5 @@ insert into notification_type (notification_id, notification_type_description)
         (1, "NULL_PROPORTION_ANOMALY"),
         (2, "BINARY_RELATIONS_ANOMALY");
 
-insert into monitored_tables(table_name, database_name, created_date, is_activated)
-    VALUES ("NYC311Data", "daudit", current_timestamp, 1);
+insert into monitored_tables(table_name, database_name, database_host, created_date, is_activated)
+    VALUES ("NYC311Data", "daudit", "localhost", current_timestamp, 1);

@@ -100,15 +100,7 @@ def handle_mention(event_data):
                 msg = builder.build(MessageType.RUN, RunMessageData(args))
                 send_message(msg)
                 host_name, db_name, table_name = args.split(":")
-
-                job = {
-                    'db_name': db_name,
-                    'table_name': table_name,
-                    'host_name': host_name,
-                    'date_col': config_json[args]['date_col'],
-                    'last_ran': config_json[args]['last_run'],
-                }
-
+                job = Job(table_name, db_name, db_host, config_json[args]['date_col'])
                 auditQueue.put((WorkType.RUN_AUDIT, job))
                 msg = builder.build(MessageType.CONFIRMATION, ConfirmationMessageData("run_audit"))
             else:
@@ -120,6 +112,7 @@ def handle_mention(event_data):
         msg = builder.build(MessageType.HELP, HelpMessageData())
     elif command == "create_job":
         host_name, db_name, table_name, time = args.split(' ')
+        my_daudit.add_monitored_table(host_name, db_name, table_name)
         # TODO: Better handling of time format
         time = int(time)
         res, err_msg = my_daudit_scheduler.schedule_job(host_name, db_name, table_name, time)

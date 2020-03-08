@@ -215,13 +215,45 @@ class Connector:
             SELECT table_id
             FROM monitored_tables
             WHERE
-                table_name = '%s';
+                table_name = '%s'; 
         """ % (table_name)
 
         cursor.execute(query)
         res = len(cursor.fetchall())
         cnx.close()
         return res
+
+    # TODO this has to become the new validate_table_id
+    def check_table_id(self, table_name: str, db_host: str, db_name: str):
+        cnx = mysql.connector.connect(**self.config)
+        cursor = cnx.cursor()
+
+        query = """
+            SELECT table_id
+            FROM monitored_tables
+            WHERE
+                table_name = '%s' AND
+                database_name = '%s' AND
+                database_host = '%s'; 
+        """ % (table_name, db_name, db_host)
+
+        cursor.execute(query)
+        res = len(cursor.fetchall())
+        cnx.close()
+        return res
+
+    def create_table_entry(self, table_name: str, db_host: str, db_name: str):
+        cnx = mysql.connector.connect(**self.config)
+        cursor = cnx.cursor()
+
+        query = """
+                INSERT INTO monitored_tables (table_name, database_name, database_host)
+                VALUES ('%s', '%s', '%s')
+            """ %(table_name, db_name, db_host)
+        
+        cursor.execute(query)
+        cnx.commit()
+        cnx.close()
 
     def create_column_id(self, col_name: str, table_id: int):
         cnx = mysql.connector.connect(**self.config)
