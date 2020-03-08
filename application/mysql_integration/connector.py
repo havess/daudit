@@ -191,7 +191,7 @@ class Connector:
         cnx.close()
         return res
 
-    def get_table_id(self, table_name: str):
+    def get_table_id(self, db_host: str, db_name: str, table_name: str):
         cnx = mysql.connector.connect(**self.config)
         cursor = cnx.cursor()
 
@@ -199,32 +199,17 @@ class Connector:
             SELECT table_id
             FROM monitored_tables
             WHERE
-                table_name = '%s';
-        """ % (table_name)
+                table_name = '%s' AND 
+                database_host = '%s' AND
+                database_name = '%s';
+        """ % (table_name, db_host, db_name)
 
         cursor.execute(query)
         res = cursor.fetchall()[0][0]
         cnx.close()
         return res
 
-    def validate_table_id(self, table_name: str):
-        cnx = mysql.connector.connect(**self.config)
-        cursor = cnx.cursor()
-
-        query = """
-            SELECT table_id
-            FROM monitored_tables
-            WHERE
-                table_name = '%s'; 
-        """ % (table_name)
-
-        cursor.execute(query)
-        res = len(cursor.fetchall())
-        cnx.close()
-        return res
-
-    # TODO this has to become the new validate_table_id
-    def check_table_id(self, table_name: str, db_host: str, db_name: str):
+    def validate_table_id(self, table_name: str, db_host: str, db_name: str):
         cnx = mysql.connector.connect(**self.config)
         cursor = cnx.cursor()
 
@@ -373,7 +358,7 @@ class Connector:
         cnx.commit()
         cnx.close()
 
-    def get_internal_null_profile(self, profile_id: int, table_name: str):
+    def get_internal_null_profile(self, profile_id: int, db_host: str, db_name: str, table_name: str):
         cnx = mysql.connector.connect(**self.config)
         cursor = cnx.cursor()
 
@@ -392,15 +377,17 @@ class Connector:
                 profile_table p ON p.profile_id = np.profile_id
             WHERE
                 table_name = '%s' AND
+                database_host = '%s' AND
+                database_name = '%s' AND
                 np.profile_id = %s;
-        """ % (table_name, profile_id)
+        """ % (table_name, db_host, db_name, profile_id)
 
         cursor.execute(query)
         res = [c for c in cursor.fetchall()]
         cnx.close()
         return res
 
-    def get_useful_counts(self, notification_id: int, table_name: str, col_name: str):
+    def get_useful_counts(self, notification_id: int, db_host: str, db_name: str, table_name: str, col_name: str):
         cnx = mysql.connector.connect(**self.config)
         cursor = cnx.cursor()
 
@@ -416,8 +403,10 @@ class Connector:
                 column_table c ON c.column_id = nt.column_id
             WHERE
                 m.table_name = '%s' AND
+                m.database_host = '%s' AND
+                m.database_name = '%s' AND
                 c.column_name = '%s';
-        """ % (table_name, col_name)
+        """ % (table_name, db_host, db_name, col_name)
 
         cursor.execute(query)
         res = [c for c in cursor.fetchall()]
@@ -534,7 +523,7 @@ class Connector:
         cnx.close()
         return res
 
-    def get_internal_binary_relationship_profile(self, profile_id: int, table_name: str):
+    def get_internal_binary_relationship_profile(self, profile_id: int, db_host: str, db_name: str, table_name: str):
         cnx = mysql.connector.connect(**self.config)
         cursor = cnx.cursor()
 
@@ -558,8 +547,10 @@ class Connector:
                 profile_table p ON p.profile_id = brp.profile_id
             WHERE
                 table_name = '%s' AND
+                database_host = '%s' AND
+                database_name = '%s' AND
                 brp.profile_id = %s;
-        """ % (table_name, profile_id)
+        """ % (table_name, db_host, db_name, profile_id)
 
         cursor.execute(query)
         res = [c for c in cursor.fetchall()]
