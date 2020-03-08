@@ -17,6 +17,8 @@ Welcome to Daudit, a data auditing tool built on top of Slack to help you quickl
 	- `users:read`
 	- `users:write`
 	- `app_mention`
+	- `channels:read`
+	- `app_mentions`
 Scroll up and press the **Install App to Workspace** button
 4. Git clone or download the Daudit [repo]([https://github.com/havess/daudit](https://github.com/havess/daudit)) onto your EC2 instance (or machine you plan to run Daudit from)
 5. Run the following:
@@ -29,5 +31,6 @@ Scroll up and press the **Install App to Workspace** button
 8. On the same page, expand the **Subscribe to bot events** and add the following events:
 	- `message.channels`
 	- `message.im`
+	- `app_mention`
 9. Go into your Slack workspace, go to a channel you would like to run Daudit in , run `@Daudit help` and you will receive a response from Daudit with a list of possible commands (similar to a Linux man page).
 

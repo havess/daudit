@@ -30,12 +30,11 @@ echo "Alrighty then, give us a moment while we start Daudit for you"
 
 echo "***WELCOME TO DAUDIT!***\n"
 echo "Follow the following instructions to set up Daudit"
-sleep 5
 
 DAUDIT_INTERNAL_PASS=rootroot
-echo \nPlease provide Slack Signing Secret
+echo "\nPlease provide Slack Signing Secret"
 read SLACK_SIGNING_SECRET
-echo \nPlease provide Bot User OAuth Access Token
+echo "\nPlease provide Bot User OAuth Access Token"
 read SLACK_API_TOKEN
 
 add_configs
