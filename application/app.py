@@ -18,6 +18,7 @@ import slack
 from message_builder import *
 
 from dauditer import Dauditer
+from job import Job
 from scheduler.scheduler import DauditScheduler
 
 import configparser
@@ -29,6 +30,11 @@ slack_events_adapter = SlackEventAdapter(os.environ["SLACK_SIGNING_SECRET"], end
 client = slack.WebClient(os.environ["SLACK_API_TOKEN"], timeout=30)
 
 JOBS_CONFIG_PATH = 'scheduler/jobs.json'
+
+def log(msg):
+    print("\n\n\n", file=sys.stderr)
+    print(msg, file=sys.stderr)
+    print("\n\n\n", file=sys.stderr)
 
 class WorkType(Enum):
     RUN_AUDIT = 1
@@ -78,6 +84,10 @@ def handle_message(event_data):
 # Here we'll link the message callback to the 'app_mention' event.
 @slack_events_adapter.on(event="app_mention")
 def handle_mention(event_data):
+
+    log("IN HANDLE MENTION")
+    log(event_data)
+
     data = event_data.get("event")
     channel_id = data.get("channel")
     user_id = data.get("user")
@@ -89,19 +99,22 @@ def handle_mention(event_data):
     args = commandNArgs[2]
     if command == "run_audit":
         if args != '':
-            print("\n\n\nBEFORE OPENING CONFIG\n\n\n", args, file=sys.stderr)
+
+            log("BEFORE OPENING CONFIG")
+            log(args)
 
             with open(JOBS_CONFIG_PATH, 'r+') as config_file:
                 config_json = json.load(config_file)
 
-            print("\n\n\nAFTER OPENING CONFIG\n\n\n", config_json, file=sys.stderr)
+            log("AFTER OPENING CONFIG")
+            log(config_json)
 
             if args in config_json:
                 msg = builder.build(MessageType.RUN, RunMessageData(args))
                 send_message(msg)
                 host_name, db_name, table_name = args.split(":")
-                job = Job(table_name, db_name, db_host, config_json[args]['date_col'])
-                auditQueue.put((WorkType.RUN_AUDIT, job))
+                audit_job = Job(table_name, db_name, db_host, config_json[args]['date_col'])
+                auditQueue.put((WorkType.RUN_AUDIT, audit_job))
                 msg = builder.build(MessageType.CONFIRMATION, ConfirmationMessageData("run_audit"))
             else:
                 # TODO: This should inform user that they entered an invalid job, maybe prompt them for list of jobs?
@@ -187,14 +200,18 @@ def worker_function(name):
             # yield quantum
             time.sleep(0)
         workType, data = auditQueue.get()
+
+        log("PULLED WORK FROM QUEUE")
+        log(data)
+
         if workType == WorkType.RUN_AUDIT:
             channel_id = data.get("channel")
             builder = MessageBuilder(channel_id)
             dauditer = Dauditer(data)
 
-            print("STARTING AUDIT")
+            log("STARTING AUDIT")
             errs = dauditer.run_audit()
-            print("DONE AUDIT")
+            log("DONE AUDIT")
 
             if len(errs):
                 msg = builder.build(MessageType.ERROR, ErrorMessageData(errs))
