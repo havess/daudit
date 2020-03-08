@@ -128,7 +128,7 @@ class DauditErrorMessageData(MessageData):
     def __init__(self, msg):
         self.msg = msg
     def to_markdown_block(self):
-        return [create_block(msg)]
+        return [create_block(self.msg)]
 
 class ConfigMessageData(MessageData):
     def to_markdown_block(self):
