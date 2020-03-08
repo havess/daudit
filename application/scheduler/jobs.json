@@ -1,5 +1,5 @@
 {
-    "ec2-34-236-66-104.compute-1.amazonaws.com:daudit:NYC311Data": {
+    "ec2-34-236-66-104.compute-1.amazonaws.com/daudit/NYC311Data": {
         "hour_of_day": 0,
         "freq_in_days": 1,
         "last_ran": "",

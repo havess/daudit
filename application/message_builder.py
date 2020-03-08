@@ -10,6 +10,7 @@ class MessageType(Enum):
     UNKNOWN         = 6
     CONFIRMATION    = 7
     LIST            = 8
+    DAUDIT_ERROR    = 9
 
 
 # This defines the type of anomaly we have found in the data.

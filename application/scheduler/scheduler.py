@@ -1,6 +1,7 @@
 from crontab import CronTab
 import json
 import os
+import sys
 
 CONFIG_PATH = 'jobs.json'
 DAUDIT_COMMAND = '%s/run_jobs.py > %s/out.log 2>&1' % (os.getcwd(), os.getcwd())
@@ -18,7 +19,10 @@ def create_or_update_job_config(config, db_host, database, table, hour, freq_in_
 
 class DauditScheduler:
     def __init__(self):
-        pass
+        print("\n\n\nIN SCHEDULER INIT", file=sys.stderr)
+        print(self.get_job_list(), file=sys.stderr)
+        print("\n\n\n", file=sys.stderr)
+
         # self.cron = CronTab(user=True)
         # for job in self.cron.find_command(DAUDIT_COMMAND):
         #     self.cron.remove(job)

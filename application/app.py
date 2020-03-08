@@ -36,6 +36,17 @@ def log(msg):
     print(msg, file=sys.stderr)
     print("\n\n\n", file=sys.stderr)
 
+def extract_raw_text(text):
+    if len(text) == 0 or text[0] != '<':
+        return text
+
+    if '|' in text:
+        # This means the text was formatted as "<url|raw>" and we need to extract just raw
+        return text.split('|')[1][:-1]
+
+    else log("PARSING TEXT ERROR")
+
+
 class WorkType(Enum):
     RUN_AUDIT = 1
     INCREASE_CONF_INTERVAL = 2
@@ -97,16 +108,18 @@ def handle_mention(event_data):
     commandNArgs = text.split(' ', 1)[1].partition(' ')
     command = commandNArgs[0]
     args = commandNArgs[2]
+
     if command == "run_audit":
         if args != '':
-
-            log("BEFORE OPENING CONFIG")
+            log("BEFORE OPENING CONFIG OR FORMATTING")
             log(args)
 
+            args = extract_raw_text(args)
             with open(JOBS_CONFIG_PATH, 'r+') as config_file:
                 config_json = json.load(config_file)
 
-            log("AFTER OPENING CONFIG")
+            log("AFTER OPENING CONFIG AND FORMATTING")
+            log(args)
             log(config_json)
 
             if args in config_json:
@@ -118,7 +131,12 @@ def handle_mention(event_data):
                 msg = builder.build(MessageType.CONFIRMATION, ConfirmationMessageData("run_audit"))
             else:
                 # TODO: This should inform user that they entered an invalid job, maybe prompt them for list of jobs?
-                msg = builder.build(MessageType.INVALID_ARGS, InvalidArgsMessageData())
+                msg = builder.build(
+                    MessageType.DAUDIT_ERROR,
+                    DauditErrorMessageData(
+                        "Specified job does not exist. Try typing 'list_jobs' to see a list of valid jobs."
+                    )
+                )
         else:
             msg = builder.build(MessageType.INVALID_ARGS, InvalidArgsMessageData())
     elif command == "help":
