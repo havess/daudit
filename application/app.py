@@ -216,11 +216,23 @@ def respond():
 @slack_events_adapter.server.route('/daudit/jobs', methods=["GET", "POST"])
 def parse_jobs():
     # Get list of jobs
-    job_list = []
+    job_str = []
     for job in request.json:
-        job_list.append(job)
+        job_str.append(job['id'])
+
     # Add to auditQueue
-    auditQueue.put((WorkType.RUN_AUDIT, job_list))
+    #TODO: Remove hardcoding of channel and date_col
+    for key in job_str:
+        db_host, db_name, table_name = key.split("/")
+        audit_job = Job(
+            table_name,
+            db_name,
+            db_host,
+            'CreatedDate',
+            'CUPB68AP5'
+        )
+        auditQueue.put((WorkType.RUN_AUDIT, audit_job))
+
     return make_response("", 200)
 
 def worker_function(name):

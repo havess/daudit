@@ -22,10 +22,12 @@ def main():
             tz = 'US/Eastern'
             hour = datetime.now(timezone(tz)).hour
             for (key, value) in config_json.items():
-                if value["hour_of_day"] == hour:
-                    list_of_jobs.append({"id": key})
-                    config_json[key]['last_ran'] = datetime.now().strftime("%d/%m/%Y %H:%M")
-                    print("\t%s" % key)
+                # TODO: Make it so that we check if a job should be run based on last ran
+                # if value["hour_of_day"] == hour:
+                list_of_jobs.append({"id": key})
+                # TODO: Also need date_col and channel_id (whatever channel)
+                config_json[key]['last_ran'] = datetime.now().strftime("%d/%m/%Y %H:%M")
+                print("\t%s" % key)
 
             # Send the jobs
             print("Current time (%s): %s" % (datetime.now(), tz))
