@@ -12,21 +12,26 @@ class Dauditer:
         self._job = job
         self.table_name = job.table_name
         self.date_col = job.date_col
-        
+        self.db_host = job.db_host
+        self.db_name = job.db_name
+
         self.db_conn = sql.get_connection(sql.get_db_descriptor(job.db_host, job.db_name))
         self.db_conn_internal = sql.get_internal_connection()
         self.cols = self.db_conn.get_columns(self.table_name)
+
+        self.NUM_ROWS = 50000;
         # self.db_conn.create_nulls(self.table_name)
 
     def validate_table_name(self):
-        exists = self.db_conn_internal.validate_table_id(self.table_name)
+        exists = self.db_conn_internal.validate_table_id(self.db_host, self.db_name, self.table_name)
         if (exists):
+            self.table_id = self.db_conn_internal.get_table_id(self.db_host, self.db_name, self.table_name)
             return True
         return False
 
     def is_null_count_anomalous(self, new_null_count: int, new_total_count: int, profile_null_count: int, profile_total_count: int, col_name: str):
 
-        useful_counts = self.db_conn_internal.get_useful_counts(1, self.table_name, col_name)
+        useful_counts = self.db_conn_internal.get_useful_counts(1, self.table_id, col_name)
 
         if len(useful_counts) == 0:
             useful_count, not_useful_count = 0, 0
@@ -49,7 +54,7 @@ class Dauditer:
             return True
         return False
 
-    def perform_null_checks(self, profile_id: int, errs: list):
+    def perform_null_checks(self, errs: list):
         HARDCODE_START_DATE = datetime.datetime(2019, 6, 1, 0, 0, 0)
         HARDCODE_END_DATE = datetime.datetime(2019, 6, 2, 0, 0, 0)
 
@@ -63,8 +68,8 @@ class Dauditer:
         new_proportions_dict = {col: (null_count, total) for col, null_count, total in new_null_proportions}
 
         null_profile = self.db_conn_internal.get_internal_null_profile(
-            profile_id,
-            self.table_name
+            self.profile_id,
+            self.table_id
         )
 
         for col, null_count, total in null_profile:
@@ -83,8 +88,8 @@ class Dauditer:
 
     def is_binary_relation_anomalous(self, new_rel_count: int, new_total_count: int, profile_rel_count: int, profile_total_count: int, col_a: str, col_b: str):
 
-        col_a_useful_counts = self.db_conn_internal.get_useful_counts(1, self.table_name, col_a)
-        col_b_useful_counts = self.db_conn_internal.get_useful_counts(1, self.table_name, col_b)
+        col_a_useful_counts = self.db_conn_internal.get_useful_counts(1, self.table_id, col_a)
+        col_b_useful_counts = self.db_conn_internal.get_useful_counts(1, self.table_id, col_b)
 
         if len(col_a_useful_counts) == 0:
             col_a_useful_count, col_a_not_useful_count = 0, 0
@@ -115,7 +120,7 @@ class Dauditer:
             return True
         return False
 
-    def perform_binary_relationship_checks(self, profile_id: int, errs: list):
+    def perform_binary_relationship_checks(self, errs: list):
         HARDCODE_START_DATE = datetime.datetime(2019, 6, 1, 0, 0, 0)
         HARDCODE_END_DATE = datetime.datetime(2019, 6, 2, 0, 0, 0)
 
@@ -129,8 +134,8 @@ class Dauditer:
         new_binary_relations_dict = {(col_a, col_b, a, b): (count, num_rows) for col_a, col_b, a, b, count, num_rows in new_binary_relations}
 
         binary_relationship_profile = self.db_conn_internal.get_internal_binary_relationship_profile(
-            profile_id,
-            self.table_name
+            self.profile_id,
+            self.table_id
         )
 
         for col_a, col_b, a, b, count, num_rows in binary_relationship_profile:
@@ -156,57 +161,62 @@ class Dauditer:
                     
                     break
 
-    def generate_null_profile(self, profile_id: int, num_rows: int):
+    def generate_null_profile(self):
         HARDCODE_DATETIME = datetime.datetime(2019, 6, 1, 0, 0, 0)
         null_proportions = self.db_conn.get_null_profile(
             self.table_name,
             self.date_col,
             HARDCODE_DATETIME,
-            num_rows
+            self.NUM_ROWS
         )
 
         self.db_conn_internal.create_internal_null_profile(
-            profile_id,
-            num_rows,
-            self.table_name,
+            self.profile_id,
+            self.NUM_ROWS,
+            self.table_id,
             null_proportions
         )
 
-    def generate_binary_relationship_profile(self, profile_id: int, num_rows: int):
+    def generate_binary_relationship_profile(self):
         HARDCODE_DATETIME = datetime.datetime(2019, 6, 1, 0, 0, 0)
         binary_relationship_profile = self.db_conn.get_binary_relationship_profile(
             self.table_name,
             self.date_col,
             HARDCODE_DATETIME,
-            num_rows
+            self.NUM_ROWS
         )
 
         self.db_conn_internal.create_internal_binary_relationship_profile(
-            profile_id,
+            self.profile_id,
             num_rows,
-            self.table_name,
+            self.table_id,
             binary_relationship_profile
         )
 
     def generate_profile(self):
-        profile_id = self.db_conn_internal.get_profile_id(self.table_name)
+        profile_id = self.db_conn_internal.get_profile_id(
+            self.table_id 
+        )
 
         if len(profile_id):
             return profile_id[0]
 
-        num_rows = 50000
+        self.db_conn_internal.create_profile(
+            self.table_id,
+            self.NUM_ROWS
+        )
 
-        self.db_conn_internal.create_profile(self.table_name, num_rows)
-        profile_id = self.db_conn_internal.get_profile_id(self.table_name)[0]
+        self.profile_id = self.db_conn_internal.get_profile_id(
+            self.table_id 
+        )
 
-        self.generate_null_profile(profile_id, num_rows)
-        self.generate_binary_relationship_profile(profile_id, num_rows)
+        self.generate_null_profile()
+        self.generate_binary_relationship_profile()
 
         return profile_id
 
     def get_table_id(self, table_name: str):
-        table_id = self.db_conn_internal.get_table_id(table_name)
-        return table_id
+        return self.table_id
 
     def get_alert_id(self, table_id: id, notification_id: int, col_a: int, col_b = -1):
         alert_id = self.db_conn_internal.get_alert_id(table_id, notification_id, col_a, col_b)
@@ -270,7 +280,7 @@ class Dauditer:
 
         profile_id = self.generate_profile()
 
-        self.perform_null_checks(profile_id, errs)
-        self.perform_binary_relationship_checks(profile_id, errs)
+        self.perform_null_checks(errs)
+        self.perform_binary_relationship_checks(errs)
         
         return errs

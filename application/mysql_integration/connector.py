@@ -209,7 +209,7 @@ class Connector:
         cnx.close()
         return res
 
-    def validate_table_id(self, table_name: str, db_host: str, db_name: str):
+    def validate_table_id(self, db_host: str, db_name: str, table_name: str):
         cnx = mysql.connector.connect(**self.config)
         cursor = cnx.cursor()
 
@@ -305,14 +305,13 @@ class Connector:
         cnx.commit()
         cnx.close()
 
-    def create_profile(self, table_name: str, num_rows: int):
+    def create_profile(self, table_id: str, num_rows: int):
         cnx = mysql.connector.connect(**self.config)
         cursor = cnx.cursor()
         current_date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
         # Expiry date is 30 days in the future:
         expiry_date = (datetime.datetime.now() + datetime.timedelta(30)).strftime('%Y-%m-%d %H:%M:%S')
-        table_id = self.get_table_id(table_name)
 
         query = """
             INSERT INTO profile_table (table_id, num_rows, created_date, expiry_date)
@@ -323,11 +322,10 @@ class Connector:
         cnx.commit()
         cnx.close()
 
-    def get_profile_id(self, table_name: str):
+    def get_profile_id(self, table_id: str):
         cnx = mysql.connector.connect(**self.config)
         cursor = cnx.cursor()
         current_date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        table_id = self.get_table_id(table_name)
 
         query = """
             SELECT profile_id
@@ -342,10 +340,9 @@ class Connector:
         cnx.close()
         return res
 
-    def create_internal_null_profile(self, profile_id: int, num_rows: int, table_name: str, null_data: list):
+    def create_internal_null_profile(self, profile_id: int, num_rows: int, table_id: str, null_data: list):
         cnx = mysql.connector.connect(**self.config)
         cursor = cnx.cursor()
-        table_id = self.get_table_id(table_name)
 
         for col_name, num_null_rows, _ in null_data:
             col_id = self.get_column_id(col_name, table_id)
@@ -358,7 +355,7 @@ class Connector:
         cnx.commit()
         cnx.close()
 
-    def get_internal_null_profile(self, profile_id: int, db_host: str, db_name: str, table_name: str):
+    def get_internal_null_profile(self, profile_id: int, table_id: str):
         cnx = mysql.connector.connect(**self.config)
         cursor = cnx.cursor()
 
@@ -376,18 +373,16 @@ class Connector:
             JOIN
                 profile_table p ON p.profile_id = np.profile_id
             WHERE
-                table_name = '%s' AND
-                database_host = '%s' AND
-                database_name = '%s' AND
+                m.table_id = %s AND
                 np.profile_id = %s;
-        """ % (table_name, db_host, db_name, profile_id)
+        """ % (table_id, profile_id)
 
         cursor.execute(query)
         res = [c for c in cursor.fetchall()]
         cnx.close()
         return res
 
-    def get_useful_counts(self, notification_id: int, db_host: str, db_name: str, table_name: str, col_name: str):
+    def get_useful_counts(self, notification_id: int, table_id: str, col_name: str):
         cnx = mysql.connector.connect(**self.config)
         cursor = cnx.cursor()
 
@@ -402,11 +397,9 @@ class Connector:
             JOIN
                 column_table c ON c.column_id = nt.column_id
             WHERE
-                m.table_name = '%s' AND
-                m.database_host = '%s' AND
-                m.database_name = '%s' AND
+                m.table_id = %s AND
                 c.column_name = '%s';
-        """ % (table_name, db_host, db_name, col_name)
+        """ % (table_id, col_name)
 
         cursor.execute(query)
         res = [c for c in cursor.fetchall()]
@@ -462,10 +455,9 @@ class Connector:
         cnx.close()
         return res
 
-    def create_internal_binary_relationship_profile(self, profile_id: int, num_rows: int, table_name: str, binary_relation_data: list):
+    def create_internal_binary_relationship_profile(self, profile_id: int, num_rows: int, table_id: str, binary_relation_data: list):
         cnx = mysql.connector.connect(**self.config)
         cursor = cnx.cursor()
-        table_id = self.get_table_id(table_name)
 
         for col_a, col_b, a_content, b_content, count, _ in binary_relation_data:
             col_id_a = self.get_column_id(col_a, table_id)
@@ -523,7 +515,7 @@ class Connector:
         cnx.close()
         return res
 
-    def get_internal_binary_relationship_profile(self, profile_id: int, db_host: str, db_name: str, table_name: str):
+    def get_internal_binary_relationship_profile(self, profile_id: int, table_id: str):
         cnx = mysql.connector.connect(**self.config)
         cursor = cnx.cursor()
 
@@ -546,11 +538,9 @@ class Connector:
             JOIN
                 profile_table p ON p.profile_id = brp.profile_id
             WHERE
-                table_name = '%s' AND
-                database_host = '%s' AND
-                database_name = '%s' AND
+                m.table_id = %s AND
                 brp.profile_id = %s;
-        """ % (table_name, db_host, db_name, profile_id)
+        """ % (table_id, profile_id)
 
         cursor.execute(query)
         res = [c for c in cursor.fetchall()]
