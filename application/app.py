@@ -185,7 +185,8 @@ def handle_message(event_data):
 # Here we'll link the message callback to the 'app_mention' event.
 @slack_events_adapter.on(event="app_mention")
 def handle_mention(event_data):
-    print("HANDLE_MENTION", event_data)
+    log("HANDLE_MENTION")
+    log(event_data)
     thr = threading.Thread(target=process_directive, args=(event_data,))
     thr.start()
     return 200
@@ -247,17 +248,68 @@ def worker_function(name):
                 msg = builder.build(MessageType.ERROR, ErrorMessageData(errs))
                 send_message(msg)
             else:
-                # TODO: Inform user audit completed without errors
-                pass
+                msg = builder.build(
+                    MessageType.DAUDIT_ERROR,
+                    DauditErrorMessageData(
+                        "No errors!"
+                    )
+                )
+                send_message(msg)
         elif workType == WorkType.ACKNOWLEDGE_ERROR:
             action_data = data.get("actions")[0]
             alert_id = action_data.get("block_id")
             user_name = data.get("user").get("username")
-            my_daudit.acknowledge_alert(alert_id, user_name)
+
+            db_conn_internal = sql.get_internal_connection()
+            db_conn_internal.acknowledge_alert(alert_id, user_name)
+            alert_res = db_conn_internal.get_alert_info(alert_id)
+            table_id = alert_res[0][0]
+            notification_id = alert_res[0][1]
+            column_id_a = alert_res[0][4]
+            column_id_b = alert_res[0][5]
+
+            notif_res = db_conn_internal.get_threshold_info(table_id, notification_id, column_id_a)
+            if not notif_res:
+                db_conn_internal.insert_notification_threshold(table_id, notification_id, column_id_a, 1, 0)
+            else:
+                id = notif_res[0][0]
+                useful_count = notif_res[0][1]
+                db_conn_internal.update_notification_useful_count(id, useful_count+1)
+            if column_id_b != -1:
+                notif_res = db_conn_internal.get_threshold_info(table_id, notification_id, column_id_b)
+                if not notif_res:
+                    db_conn_internal.insert_notification_threshold(table_id, notification_id, column_id_b, 1, 0)
+                else:
+                    id = notif_res[0][0]
+                    useful_count = notif_res[0][1]
+                    db_conn_internal.update_notification_useful_count(id, useful_count+1)         
+
         elif workType == WorkType.INCREASE_CONF_INTERVAL:
             action_data = data.get("actions")[0]
             alert_id = action_data.get("block_id")
-            my_daudit.alert_not_useful(alert_id)
+
+            db_conn_internal = sql.get_internal_connection()
+            alert_res = db_conn_internal.get_alert_info(alert_id)
+            table_id = alert_res[0][0]
+            notification_id = alert_res[0][1]
+            column_id_a = alert_res[0][4]
+            column_id_b = alert_res[0][5]
+
+            notif_res = db_conn_internal.get_threshold_info(table_id, notification_id, column_id_a)
+            if not notif_res:
+                db_conn_internal.insert_notification_threshold(table_id, notification_id, column_id_a, 0, 1)
+            else:
+                id = notif_res[0][0]
+                not_useful_count = notif_res[0][2]
+                db_conn_internal.update_notification_not_useful_count(id, not_useful_count+1)
+            if column_id_b != -1:
+                notif_res = db_conn_internal.get_threshold_info(table_id, notification_id, column_id_b)
+                if not notif_res:
+                    db_conn_internal.insert_notification_threshold(table_id, notification_id, column_id_b, 0, 1)
+                else:
+                    id = notif_res[0][0]
+                    useful_count = notif_res[0][1]
+                    db_conn_internal.update_notification_not_useful_count(id, not_useful_count+1)
 
 
 def main():
