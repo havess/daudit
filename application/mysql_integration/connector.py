@@ -191,7 +191,7 @@ class Connector:
         cnx.close()
         return res
 
-    def get_table_id(self, table_name: str):
+    def get_table_id(self, db_host: str, db_name: str, table_name: str):
         cnx = mysql.connector.connect(**self.config)
         cursor = cnx.cursor()
 
@@ -199,15 +199,17 @@ class Connector:
             SELECT table_id
             FROM monitored_tables
             WHERE
-                table_name = '%s';
-        """ % (table_name)
+                table_name = '%s' AND 
+                database_host = '%s' AND
+                database_name = '%s';
+        """ % (table_name, db_host, db_name)
 
         cursor.execute(query)
         res = cursor.fetchall()[0][0]
         cnx.close()
         return res
 
-    def validate_table_id(self, table_name: str):
+    def validate_table_id(self, db_host: str, db_name: str, table_name: str):
         cnx = mysql.connector.connect(**self.config)
         cursor = cnx.cursor()
 
@@ -215,13 +217,28 @@ class Connector:
             SELECT table_id
             FROM monitored_tables
             WHERE
-                table_name = '%s';
-        """ % (table_name)
+                table_name = '%s' AND
+                database_name = '%s' AND
+                database_host = '%s'; 
+        """ % (table_name, db_name, db_host)
 
         cursor.execute(query)
         res = len(cursor.fetchall())
         cnx.close()
         return res
+
+    def create_table_entry(self, table_name: str, db_host: str, db_name: str):
+        cnx = mysql.connector.connect(**self.config)
+        cursor = cnx.cursor()
+
+        query = """
+                INSERT INTO monitored_tables (table_name, database_name, database_host)
+                VALUES ('%s', '%s', '%s')
+            """ %(table_name, db_name, db_host)
+        
+        cursor.execute(query)
+        cnx.commit()
+        cnx.close()
 
     def create_column_id(self, col_name: str, table_id: int):
         cnx = mysql.connector.connect(**self.config)
@@ -264,9 +281,13 @@ class Connector:
         cnx = mysql.connector.connect(**self.config)
         cursor = cnx.cursor()
         query = """
-            SELECT ID
-            FROM ALERT_TABLE
-            WHERE TABLE_ID = %s AND NOTIFICATION_ID = %s AND column_id_a = %s AND column_id_b = %s;
+            SELECT id
+            FROM alert_table
+            WHERE
+                table_id = %s AND
+                notification_id = %s AND
+                column_id_a = %s AND
+                column_id_b = %s;
             """% (table_id, notification_id, col_a, col_b)
 
         cursor.execute(query)
@@ -280,22 +301,21 @@ class Connector:
         cursor = cnx.cursor()
         current_date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         query = """
-            insert into alert_table (table_id, notification_id, start_date, column_id_a, column_id_b, is_acknowledged)
-            values (%s, %s, '%s', %s, %s, 0)
+            INSERT INTO alert_table (table_id, notification_id, start_date, column_id_a, column_id_b, is_acknowledged)
+            VALUES (%s, %s, '%s', %s, %s, 0)
             """ %(table_id, notification_id, current_date, col_a, col_b)
         print(query)
         cursor.execute(query)
         cnx.commit()
         cnx.close()
 
-    def create_profile(self, table_name: str, num_rows: int):
+    def create_profile(self, table_id: str, num_rows: int):
         cnx = mysql.connector.connect(**self.config)
         cursor = cnx.cursor()
         current_date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
         # Expiry date is 30 days in the future:
         expiry_date = (datetime.datetime.now() + datetime.timedelta(30)).strftime('%Y-%m-%d %H:%M:%S')
-        table_id = self.get_table_id(table_name)
 
         query = """
             INSERT INTO profile_table (table_id, num_rows, created_date, expiry_date)
@@ -306,11 +326,10 @@ class Connector:
         cnx.commit()
         cnx.close()
 
-    def get_profile_id(self, table_name: str):
+    def get_profile_id(self, table_id: str):
         cnx = mysql.connector.connect(**self.config)
         cursor = cnx.cursor()
         current_date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        table_id = self.get_table_id(table_name)
 
         query = """
             SELECT profile_id
@@ -323,12 +342,17 @@ class Connector:
         cursor.execute(query)
         res = [c[0] for c in cursor.fetchall()]
         cnx.close()
-        return res
 
-    def create_internal_null_profile(self, profile_id: int, num_rows: int, table_name: str, null_data: list):
+        if len(res) == 0:
+            return -1
+
+        assert(len(res) == 1) # Should only be 1 valid profile per job at a time
+
+        return res[0]
+
+    def create_internal_null_profile(self, profile_id: int, num_rows: int, table_id: str, null_data: list):
         cnx = mysql.connector.connect(**self.config)
         cursor = cnx.cursor()
-        table_id = self.get_table_id(table_name)
 
         for col_name, num_null_rows, _ in null_data:
             col_id = self.get_column_id(col_name, table_id)
@@ -341,7 +365,7 @@ class Connector:
         cnx.commit()
         cnx.close()
 
-    def get_internal_null_profile(self, profile_id: int, table_name: str):
+    def get_internal_null_profile(self, profile_id: int, table_id: str):
         cnx = mysql.connector.connect(**self.config)
         cursor = cnx.cursor()
 
@@ -359,16 +383,16 @@ class Connector:
             JOIN
                 profile_table p ON p.profile_id = np.profile_id
             WHERE
-                table_name = '%s' AND
+                m.table_id = %s AND
                 np.profile_id = %s;
-        """ % (table_name, profile_id)
+        """ % (table_id, profile_id)
 
         cursor.execute(query)
         res = [c for c in cursor.fetchall()]
         cnx.close()
         return res
 
-    def get_useful_counts(self, notification_id: int, table_name: str, col_name: str):
+    def get_useful_counts(self, notification_id: int, table_id: str, col_name: str):
         cnx = mysql.connector.connect(**self.config)
         cursor = cnx.cursor()
 
@@ -383,9 +407,9 @@ class Connector:
             JOIN
                 column_table c ON c.column_id = nt.column_id
             WHERE
-                m.table_name = '%s' AND
+                m.table_id = %s AND
                 c.column_name = '%s';
-        """ % (table_name, col_name)
+        """ % (table_id, col_name)
 
         cursor.execute(query)
         res = [c for c in cursor.fetchall()]
@@ -441,10 +465,9 @@ class Connector:
         cnx.close()
         return res
 
-    def create_internal_binary_relationship_profile(self, profile_id: int, num_rows: int, table_name: str, binary_relation_data: list):
+    def create_internal_binary_relationship_profile(self, profile_id: int, num_rows: int, table_id: str, binary_relation_data: list):
         cnx = mysql.connector.connect(**self.config)
         cursor = cnx.cursor()
-        table_id = self.get_table_id(table_name)
 
         for col_a, col_b, a_content, b_content, count, _ in binary_relation_data:
             col_id_a = self.get_column_id(col_a, table_id)
@@ -502,7 +525,7 @@ class Connector:
         cnx.close()
         return res
 
-    def get_internal_binary_relationship_profile(self, profile_id: int, table_name: str):
+    def get_internal_binary_relationship_profile(self, profile_id: int, table_id: str):
         cnx = mysql.connector.connect(**self.config)
         cursor = cnx.cursor()
 
@@ -525,9 +548,9 @@ class Connector:
             JOIN
                 profile_table p ON p.profile_id = brp.profile_id
             WHERE
-                table_name = '%s' AND
+                m.table_id = %s AND
                 brp.profile_id = %s;
-        """ % (table_name, profile_id)
+        """ % (table_id, profile_id)
 
         cursor.execute(query)
         res = [c for c in cursor.fetchall()]
@@ -538,9 +561,12 @@ class Connector:
         cnx = mysql.connector.connect(**self.config)
         cursor = cnx.cursor()
         query = """
-            update alert_table
-            set is_acknowledged=1, acknowledged_by_user='%s'
-            where id=%s
+            UPDATE alert_table
+            SET
+                is_acknowledged = 1,
+                acknowledged_by_user = '%s'
+            WHERE
+                id = %s;
             """ % (user_name, alert_id)
         print(query)
         cursor.execute(query)

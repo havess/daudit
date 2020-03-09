@@ -6,6 +6,7 @@ import ssl as ssl_lib
 import threading
 import queue
 import json
+import sys
 
 from flask import request, make_response
 from enum import Enum
@@ -16,7 +17,8 @@ import slack
 
 from message_builder import *
 
-from daudit import Daudit
+from dauditer import Dauditer
+from job import Job
 from scheduler.scheduler import DauditScheduler
 
 import configparser
@@ -27,6 +29,24 @@ import mysql_integration.my_sql as sql
 slack_events_adapter = SlackEventAdapter(os.environ["SLACK_SIGNING_SECRET"], endpoint="/slack/events")
 client = slack.WebClient(os.environ["SLACK_API_TOKEN"], timeout=30)
 
+JOBS_CONFIG_PATH = 'scheduler/jobs.json'
+
+def log(msg):
+    print("\n\n\n", file=sys.stderr)
+    print(msg, file=sys.stderr)
+    print("\n\n\n", file=sys.stderr)
+
+def extract_raw_text(text):
+    if len(text) == 0 or text[0] != '<':
+        return text
+
+    if '|' in text:
+        # This means the text was formatted as "<url|raw>" and we need to extract just raw
+        return text.split('|')[1][:-1]
+
+    log("PARSING TEXT ERROR")
+    return text
+
 
 class WorkType(Enum):
     RUN_AUDIT = 1
@@ -35,7 +55,6 @@ class WorkType(Enum):
 
 auditQueue = queue.Queue()
 
-my_daudit = None
 my_daudit_scheduler = None
 g_worker = None
 
@@ -45,6 +64,7 @@ def send_message(msg):
 
     # Capture the timestamp of the message we've just posted.
     #builder.timestamp = response["ts"]
+
 
 def process_directive(event_data):
     data = event_data.get("event")
@@ -56,18 +76,50 @@ def process_directive(event_data):
     commandNArgs = text.split(' ', 1)[1].partition(' ')
     command = commandNArgs[0]
     args = commandNArgs[2]
+
     if command == "run_audit":
-        if my_daudit.validate_table_name(args):
-            msg = builder.build(MessageType.RUN, RunMessageData(args))
-            send_message(msg)
-            auditQueue.put((WorkType.RUN_AUDIT, data))
-            msg = builder.build(MessageType.CONFIRMATION, ConfirmationMessageData("run_audit"))
+        if args != '':
+            log("BEFORE OPENING CONFIG OR FORMATTING")
+            log(args)
+
+            args = extract_raw_text(args)
+            with open(JOBS_CONFIG_PATH, 'r+') as config_file:
+                config_json = json.load(config_file)
+
+            log("AFTER OPENING CONFIG AND FORMATTING")
+            log(args)
+            log(config_json)
+
+            if args in config_json:
+                db_host, db_name, table_name = args.split("/")
+
+                audit_job = Job(
+                    table_name,
+                    db_name,
+                    db_host,
+                    config_json[args]['date_col'],
+                    channel_id
+                )
+                auditQueue.put((WorkType.RUN_AUDIT, audit_job))
+
+                msg = builder.build(MessageType.RUN, RunMessageData(table_name))
+                send_message(msg)
+                msg = builder.build(MessageType.CONFIRMATION, ConfirmationMessageData("run_audit"))
+            else:
+                # TODO: This should inform user that they entered an invalid job, maybe prompt them for list of jobs?
+                msg = builder.build(
+                    MessageType.DAUDIT_ERROR,
+                    DauditErrorMessageData(
+                        "Specified job does not exist. Try typing 'list_jobs' to see a list of valid jobs."
+                    )
+                )
         else:
             msg = builder.build(MessageType.INVALID_ARGS, InvalidArgsMessageData())
     elif command == "help":
         msg = builder.build(MessageType.HELP, HelpMessageData())
     elif command == "create_job":
         host_name, db_name, table_name, time = args.split(' ')
+        my_daudit.add_monitored_table(host_name, db_name, table_name)
         # TODO: Better handling of time format
         time = int(time)
         res, err_msg = my_daudit_scheduler.schedule_job(host_name, db_name, table_name, time)
@@ -102,6 +154,7 @@ def process_directive(event_data):
 
     send_message(msg)
 
+
 # ============== Message Events ============= #
 # When a user sends a DM, the event type will be 'message'.
 # Here we'll link the message callback to the 'message' event.
@@ -125,7 +178,6 @@ def handle_message(event_data):
         msg = builder.build(MessageType.CONFIRMATION, DMMessageData(channels))
         send_message(msg)
     return 200
-
 
 
 # ============== App mention Events ============= #
@@ -171,18 +223,32 @@ def parse_jobs():
     return make_response("", 200)
 
 def worker_function(name):
+    log("STARTING WORKER")
     while True:
         while auditQueue.empty():
             # yield quantum
-            time.sleep(0)
+            continue
+
         workType, data = auditQueue.get()
+
+        log("PULLED WORK FROM QUEUE")
+        log(data)
+
         if workType == WorkType.RUN_AUDIT:
-            channel_id = data.get("channel")
+            channel_id = data.channel_id
             builder = MessageBuilder(channel_id)
-            errs = my_daudit.run_audit()
+            dauditer = Dauditer(data)
+
+            log("STARTING AUDIT")
+            errs = dauditer.run_audit()
+            log("DONE AUDIT")
+
             if len(errs):
                 msg = builder.build(MessageType.ERROR, ErrorMessageData(errs))
                 send_message(msg)
+            else:
+                # TODO: Inform user audit completed without errors
+                pass
         elif workType == WorkType.ACKNOWLEDGE_ERROR:
             action_data = data.get("actions")[0]
             alert_id = action_data.get("block_id")
@@ -195,10 +261,8 @@ def worker_function(name):
 
 
 def main():
-    global my_daudit
     global my_daudit_scheduler
     global g_worker
-    my_daudit = Daudit([])
     my_daudit_scheduler = DauditScheduler()
 
     logger = logging.getLogger()

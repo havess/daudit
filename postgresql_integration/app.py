@@ -13,7 +13,7 @@ if __name__ == "__main__":
         )
     )
 
-    user_name = config["USER_NAME"]
+    user_name = config["USERNAME"]
     password = config["PASSWORD"]
     database = config["DATABASE"]
     table = config["TABLE"]
@@ -33,7 +33,7 @@ def get_connection(config_name: str):
         )
     )
 
-    user_name = config['DEFAULT']["USER_NAME"]
+    user_name = config['DEFAULT']["USERNAME"]
     password = config['DEFAULT']["PASSWORD"]
     database = config['DEFAULT']["DATABASE"]
     table = config['DEFAULT']["TABLE"]

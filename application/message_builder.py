@@ -10,6 +10,7 @@ class MessageType(Enum):
     UNKNOWN         = 6
     CONFIRMATION    = 7
     LIST            = 8
+    DAUDIT_ERROR    = 9
 
 
 # This defines the type of anomaly we have found in the data.
@@ -132,6 +133,14 @@ class InvalidArgsMessageData(MessageData):
         return "Daudit invalid arguments."
     def to_markdown_block(self):
         return [create_block("Invalid arguments, try typing 'help' for argument info. \n\n")]
+
+class DauditErrorMessageData(MessageData):
+    def __init__(self, msg):
+        self.msg = msg
+    def to_notification_text(self):
+        return "Daudit Error Message."
+    def to_markdown_block(self):
+        return [create_block(self.msg)]
 
 class ConfirmationMessageData(MessageData):
     def __init__(self, confirmed):
