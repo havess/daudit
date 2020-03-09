@@ -198,8 +198,9 @@ class Dauditer:
             self.table_id 
         )
 
-        if len(profile_id):
-            return profile_id[0]
+        if profile_id != -1:
+            self.profile_id = profile_id
+            return profile_id
 
         self.db_conn_internal.create_profile(
             self.table_id,

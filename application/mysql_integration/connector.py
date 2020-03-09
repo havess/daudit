@@ -338,7 +338,13 @@ class Connector:
         cursor.execute(query)
         res = [c[0] for c in cursor.fetchall()]
         cnx.close()
-        return res
+
+        if len(res) == 0:
+            return -1
+
+        assert(len(res) == 1) # Should only be 1 valid profile per job at a time
+
+        return res[0]
 
     def create_internal_null_profile(self, profile_id: int, num_rows: int, table_id: str, null_data: list):
         cnx = mysql.connector.connect(**self.config)
