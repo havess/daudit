@@ -187,6 +187,9 @@ def handle_mention(event_data):
         msg = builder.build(MessageType.UNKNOWN, UnknownCommandMessageData())
 
     send_message(msg)
+
+    log("RETURNING 200 FROM HANDLE MENTION")
+
     return 200
 
 @slack_events_adapter.on(event="action")
