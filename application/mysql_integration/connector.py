@@ -281,9 +281,13 @@ class Connector:
         cnx = mysql.connector.connect(**self.config)
         cursor = cnx.cursor()
         query = """
-            SELECT ID
-            FROM ALERT_TABLE
-            WHERE TABLE_ID = %s AND NOTIFICATION_ID = %s AND column_id_a = %s AND column_id_b = %s;
+            SELECT id
+            FROM alert_table
+            WHERE
+                table_id = %s AND
+                notification_id = %s AND
+                column_id_a = %s AND
+                column_id_b = %s;
             """% (table_id, notification_id, col_a, col_b)
 
         cursor.execute(query)
@@ -297,8 +301,8 @@ class Connector:
         cursor = cnx.cursor()
         current_date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         query = """
-            insert into alert_table (table_id, notification_id, start_date, column_id_a, column_id_b, is_acknowledged)
-            values (%s, %s, '%s', %s, %s, 0)
+            INSERT INTO alert_table (table_id, notification_id, start_date, column_id_a, column_id_b, is_acknowledged)
+            VALUES (%s, %s, '%s', %s, %s, 0)
             """ %(table_id, notification_id, current_date, col_a, col_b)
         print(query)
         cursor.execute(query)
@@ -557,9 +561,12 @@ class Connector:
         cnx = mysql.connector.connect(**self.config)
         cursor = cnx.cursor()
         query = """
-            update alert_table
-            set is_acknowledged=1, acknowledged_by_user='%s'
-            where id=%s
+            UPDATE alert_table
+            SET
+                is_acknowledged = 1,
+                acknowledged_by_user = '%s'
+            WHERE
+                id = %s;
             """ % (user_name, alert_id)
         print(query)
         cursor.execute(query)
