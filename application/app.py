@@ -46,37 +46,7 @@ def send_message(msg):
     # Capture the timestamp of the message we've just posted.
     #builder.timestamp = response["ts"]
 
-# ============== Message Events ============= #
-# When a user sends a DM, the event type will be 'message'.
-# Here we'll link the message callback to the 'message' event.
-@slack_events_adapter.on(event="message")
-def handle_message(event_data):
-    data = event_data.get("event")
-    channel_id = data.get("channel")
-    user_id = data.get("user")
-    members = client.users_list()['members']
-    is_bot = False
-    for member in members:
-        if member['id'] == user_id:
-            is_bot = member['is_bot']
-
-    if not is_bot and data.get('channel_type') == 'im':
-        convo_list = client.users_conversations()
-        channels = []
-        for channel in convo_list['channels']:
-            channels.append(channel['name'])
-        builder = MessageBuilder(channel_id)
-        msg = builder.build(MessageType.CONFIRMATION, DMMessageData(channels))
-        send_message(msg)
-    return 200
-
-
-
-# ============== App mention Events ============= #
-# When a user mentions the app in a channel, the event type will be 'app_mention'.
-# Here we'll link the message callback to the 'app_mention' event.
-@slack_events_adapter.on(event="app_mention")
-def handle_mention(event_data):
+def process_directive(event_data):
     data = event_data.get("event")
     channel_id = data.get("channel")
     user_id = data.get("user")
@@ -114,7 +84,6 @@ def handle_mention(event_data):
             msg = builder.build(MessageType.CONFIRMATION, ConfirmationMessageData("update_job"))
         else:
             msg = builder.build(MessageType.INVALID_ARGS, InvalidArgsMessageData())
-
     elif command == "delete_job":
         job_id = args
         res, err_msg = my_daudit_scheduler.delete_job(job_id)
@@ -132,6 +101,41 @@ def handle_mention(event_data):
         msg = builder.build(MessageType.UNKNOWN, UnknownCommandMessageData())
 
     send_message(msg)
+
+# ============== Message Events ============= #
+# When a user sends a DM, the event type will be 'message'.
+# Here we'll link the message callback to the 'message' event.
+@slack_events_adapter.on(event="message")
+def handle_message(event_data):
+    data = event_data.get("event")
+    channel_id = data.get("channel")
+    user_id = data.get("user")
+    members = client.users_list()['members']
+    is_bot = False
+    for member in members:
+        if member['id'] == user_id:
+            is_bot = member['is_bot']
+
+    if not is_bot and data.get('channel_type') == 'im':
+        convo_list = client.users_conversations()
+        channels = []
+        for channel in convo_list['channels']:
+            channels.append(channel['name'])
+        builder = MessageBuilder(channel_id)
+        msg = builder.build(MessageType.CONFIRMATION, DMMessageData(channels))
+        send_message(msg)
+    return 200
+
+
+
+# ============== App mention Events ============= #
+# When a user mentions the app in a channel, the event type will be 'app_mention'.
+# Here we'll link the message callback to the 'app_mention' event.
+@slack_events_adapter.on(event="app_mention")
+def handle_mention(event_data):
+    print("HANDLE_MENTION", event_data)
+    thr = threading.Thread(target=process_directive, args=(event_data,))
+    thr.start()
     return 200
 
 @slack_events_adapter.on(event="action")

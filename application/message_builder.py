@@ -54,16 +54,22 @@ def create_button_id(dataError):
 # All types of messages might have their own arbitrary data to display. For convenience they should all be
 # of type MessageData.
 class MessageData:
+    def to_notification_text(self) -> str:
+        return "Unimplemented to_nofication_text function. Please file a bug."
     def to_markdown_block(self) -> str:
-        return [create_block("Unimplemented to_markdown_block function")]
+        return [create_block("Unimplemented to_markdown_block function. Please file a bug.")]
 
 class RunMessageData(MessageData):
     def __init__(self, table: str):
         self.table = table
+    def to_notification_text(self):
+        return "Starting audit."
     def to_markdown_block(self):
         return [create_block("Starting an audit on table " + str(self.table) + ". \nYou will be notified when the audit has completed.")]
 
 class HelpMessageData(MessageData):
+    def to_notification_text(self):
+        return "Daudit help."
     def to_markdown_block(self):
         return  [create_block("The following commands are supported by Daudit: \n\n" +
                 "*run_audit <job>* - Initiate a full audit. \n" +
@@ -76,6 +82,8 @@ class HelpMessageData(MessageData):
 class DMMessageData(MessageData):
     def __init__(self, channels):
         self._channels = channels
+    def to_notification_text(self):
+        return "Daudit does not support DMs."
     def to_markdown_block(self):
         channel_str = " "
         for ch in self._channels:
@@ -85,7 +93,8 @@ class DMMessageData(MessageData):
 class ErrorMessageData(MessageData):
     def __init__(self, errs):
         self.errors = errs
-
+    def to_notification_text(self):
+        return "Daudit audit complete."
     def to_markdown_block(self):
         block = []
         for err in self.errors:
@@ -119,22 +128,22 @@ class ErrorMessageData(MessageData):
         return block
 
 class InvalidArgsMessageData(MessageData):
+    def to_notification_text(self):
+        return "Daudit invalid arguments."
     def to_markdown_block(self):
         return [create_block("Invalid arguments, try typing 'help' for argument info. \n\n")]
-
-class ConfigMessageData(MessageData):
-    def to_markdown_block(self):
-        return [create_block("What would you like to configure: \n\n" +
-                "*add <host_name> <database_name> <username> <password>* - Add a database configuration. \n" +
-                "*modify <host_name> <database_name> <username> <password>* - Modify an existing database configuration.")]
 
 class ConfirmationMessageData(MessageData):
     def __init__(self, confirmed):
         self._confirmed = confirmed
+    def to_notification_text(self):
+        return "Daudit operation " + self._confirmed + " completed successfully."
     def to_markdown_block(self):
         return [create_block("Operation `" + self._confirmed + "` completed successfully.\n\n")]
 
 class UnknownCommandMessageData(MessageData):
+    def to_notification_text(self):
+        return "Invalid Daudit command."
     def to_markdown_block(self):
         return [create_block("Invalid command, try typing 'help'. \n\n")]
 
@@ -142,6 +151,8 @@ class ListMessageData(MessageData):
     def __init__(self, list_name, items):
         self._items = items
         self._list_name = list_name
+    def to_notification_text(self):
+        return "Daudit " + self._list_name + " request completed."
     def to_markdown_block(self):
         list_str  = ""
         for item in self._items:
@@ -161,6 +172,7 @@ class MessageBuilder:
         return {
             "ts": self.timestamp,
             "channel": self.channel,
+            "text": messageData.to_notification_text(),
             "username": self.username,
             "blocks": messageData.to_markdown_block(),
         }
