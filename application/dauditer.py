@@ -19,7 +19,7 @@ class Dauditer:
         # self.db_conn.create_nulls(self.table_name)
 
     def validate_table_name(self):
-        exists = self.db_conn_internal.validate_table_id(self._job.table_name)
+        exists = self.db_conn_internal.validate_table_id(self.table_name)
         if (exists):
             return True
         return False
@@ -264,7 +264,7 @@ class Dauditer:
     def run_audit(self):
         errs = []
 
-        if not validate_table_name():
+        if not self.validate_table_name():
             # TODO: Return some sort of error saying table does not exist?
             return []
 
