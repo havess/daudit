@@ -29,7 +29,7 @@ import mysql_integration.my_sql as sql
 slack_events_adapter = SlackEventAdapter(os.environ["SLACK_SIGNING_SECRET"], endpoint="/slack/events")
 client = slack.WebClient(os.environ["SLACK_API_TOKEN"], timeout=30)
 
-JOBS_CONFIG_PATH = 'scheduler/jobs.json'
+JOBS_CONFIG_PATH = 'scheduler/config.json'
 
 def log(msg):
     print("\n\n\n", file=sys.stderr)
