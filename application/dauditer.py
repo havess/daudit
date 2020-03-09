@@ -13,7 +13,7 @@ class Dauditer:
         self.table_name = job.table_name
         self.date_col = job.date_col
         
-        self.db_conn = sql.get_connection(sql.get_db_descriptor(job.host_name, job.db_name))
+        self.db_conn = sql.get_connection(sql.get_db_descriptor(job.db_host, job.db_name))
         self.db_conn_internal = sql.get_internal_connection()
         self.cols = self.db_conn.get_columns(self.table_name)
         # self.db_conn.create_nulls(self.table_name)

@@ -125,7 +125,14 @@ def handle_mention(event_data):
 
             if args in config_json:
                 db_host, db_name, table_name = args.split("/")
-                audit_job = Job(table_name, db_name, db_host, config_json[args]['date_col'])
+
+                audit_job = Job(
+                    table_name,
+                    db_name,
+                    db_host,
+                    config_json[args]['date_col'],
+                    channel_id
+                )
                 auditQueue.put((WorkType.RUN_AUDIT, audit_job))
 
                 msg = builder.build(MessageType.RUN, RunMessageData(table_name))
@@ -227,7 +234,7 @@ def worker_function(name):
         log(data)
 
         if workType == WorkType.RUN_AUDIT:
-            channel_id = data.get("channel")
+            channel_id = data.channel_id
             builder = MessageBuilder(channel_id)
             dauditer = Dauditer(data)
 
