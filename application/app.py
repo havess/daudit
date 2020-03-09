@@ -219,7 +219,6 @@ def worker_function(name):
     while True:
         while auditQueue.empty():
             # yield quantum
-            log("YIELD QUANTUM")
             continue
 
         workType, data = auditQueue.get()
