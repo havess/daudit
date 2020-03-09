@@ -188,7 +188,7 @@ class Dauditer:
 
         self.db_conn_internal.create_internal_binary_relationship_profile(
             self.profile_id,
-            num_rows,
+            self.NUM_ROWS,
             self.table_id,
             binary_relationship_profile
         )
