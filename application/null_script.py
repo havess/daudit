@@ -16,7 +16,7 @@ def introduce_paired_data(db_conn, table_name,  col0_name, col0_val, col1_name, 
 
 
 if __name__ == "__main__":
-    db_conn = sql.get_connection("localhost:daudit")
+    db_conn = sql.get_connection("ec2-34-236-66-104.compute-1.amazonaws.com:daudit")
 
     if sys.argv[1] == "RESET":
         # Example Command:
