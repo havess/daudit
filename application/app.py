@@ -215,10 +215,13 @@ def parse_jobs():
     return make_response("", 200)
 
 def worker_function(name):
+    log("STARTING WORKER")
     while True:
         while auditQueue.empty():
             # yield quantum
-            time.sleep(0)
+            log("YIELD QUANTUM")
+            continue
+
         workType, data = auditQueue.get()
 
         log("PULLED WORK FROM QUEUE")
