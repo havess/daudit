@@ -68,4 +68,4 @@ Welcome to Daudit, a data auditing tool built on top of Slack to help you quickl
 
 -  `app_mention`
 
-9. Go into your Slack workspace, go to a channel you would like to run Daudit in , run `@Daudit help` and you will receive a response from Daudit with a list of possible commands (similar to a Linux man page).
+9. Go into your Slack workspace, go to a channel you would like to run Daudit in , run `@Daudit help` and you will receive a response from Daudit with a list of possible commands (similar to a Linux man page). If you named your application something other than Daudit, then use that name instead of Daudit when you type a command.
