@@ -3,8 +3,8 @@ import json
 import os
 import sys
 
-CONFIG_PATH = '%s/scheduler/jobs.json' % os.getcwd()
-DAUDIT_COMMAND = '%s/run_jobs.py > %s/out.log 2>&1' % (os.getcwd(), os.getcwd())
+CONFIG_PATH = 'scheduler/config.json'
+DAUDIT_COMMAND = '(cd /home/application/scheduler/ && echo "*** `date -u` ***" >> out.log && ./run_jobs.py >> out.log)'
 
 def create_or_update_job_config(config, db_host, database, table, hour, freq_in_days):
     key = '%s/%s/%s' % (db_host, database, table)
@@ -19,16 +19,12 @@ def create_or_update_job_config(config, db_host, database, table, hour, freq_in_
 
 class DauditScheduler:
     def __init__(self):
-        print("\n\n\nIN SCHEDULER INIT", file=sys.stderr)
-        print(self.get_job_list(), file=sys.stderr)
-        print("\n\n\n", file=sys.stderr)
-
-        # self.cron = CronTab(user=True)
-        # for job in self.cron.find_command(DAUDIT_COMMAND):
-        #     self.cron.remove(job)
-        # job = self.cron.new(command=DAUDIT_COMMAND)
-        # job.every(1).minutes()
-        # self.cron.write()
+        self.cron = CronTab(user=True)
+        for job in self.cron.find_command(DAUDIT_COMMAND):
+            self.cron.remove(job)
+        job = self.cron.new(command=DAUDIT_COMMAND)
+        job.every(1).minutes()
+        self.cron.write()
            
     def get_job_list(self):
         with open(CONFIG_PATH, 'r+') as config_file:
