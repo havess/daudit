@@ -221,10 +221,9 @@ def parse_jobs():
         job_str.append(job['id'] + ":" + job['date_created'] + ":" + job['channel_id'])
 
     # Add to auditQueue
-    #TODO: Remove hardcoding of channel and date_col
-    for key in job_str:
-        full_key, date_created, channel = key.split(":")
-        db_host, db_name, table_name = full_key.split("/")
+    for work in job_str:
+        key, date_created, channel = work.split(":")
+        db_host, db_name, table_name = key.split("/")
         audit_job = Job(
             table_name,
             db_name,

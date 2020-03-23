@@ -9,7 +9,7 @@ CONFIG_PATH = 'scheduler/config.json'
 DAUDIT_COMMAND = '(cd /home/application/scheduler/ && echo "*** `date -u` ***" >> out.log && ./run_jobs.py >> out.log)'
 
 
-def create_or_update_job_config(config, db_host, database, table, hour, freq_in_days, channel):
+def create_or_update_job_config(channel, config, db_host, database, table, hour, freq_in_days):
     key = '%s/%s/%s' % (db_host, database, table)
     if key in config:
         config[key]['hour_of_day'] = hour
@@ -57,7 +57,7 @@ class DauditScheduler:
 
         with open(CONFIG_PATH, 'r+') as f:
             config_json = json.load(f)
-            update_json = create_or_update_job_config(config_json, db_host, database, table, hour, freq_in_days, channel)
+            update_json = create_or_update_job_config(channel, config_json, db_host, database, table, hour, freq_in_days)
             f.seek(0)
             f.write(json.dumps(update_json))
             f.truncate()
@@ -75,7 +75,7 @@ class DauditScheduler:
 
         with open(CONFIG_PATH, 'r+') as f:
             config_json = json.load(f)
-            update_json = create_or_update_job_config(config_json, host, database, table, time, frequency, channel)
+            update_json = create_or_update_job_config(channel, config_json, host, database, table, time, frequency)
             f.seek(0)
             f.write(json.dumps(update_json))
             f.truncate()
