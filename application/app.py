@@ -97,8 +97,8 @@ def process_directive(event_data):
                     table_name,
                     db_name,
                     db_host,
-                    config_json[args]['date_col'],
-                    channel_id
+                    config_json[args]['date_created'],
+                    config_json[args]['channel_id']
                 )
                 auditQueue.put((WorkType.RUN_AUDIT, audit_job))
 
@@ -122,7 +122,7 @@ def process_directive(event_data):
         my_daudit.add_monitored_table(host_name, db_name, table_name)
         # TODO: Better handling of time format
         time = int(time)
-        res, err_msg = my_daudit_scheduler.schedule_job(host_name, db_name, table_name, time)
+        res, err_msg = my_daudit_scheduler.schedule_job(channel_id, host_name, db_name, table_name, time)
         if res == True:
             msg = builder.build(MessageType.CONFIRMATION, ConfirmationMessageData("create_job"))
         else:
@@ -131,7 +131,7 @@ def process_directive(event_data):
         job_id, time, freq = args.split(" ")
         time = int(time)
         freq = int(freq)
-        res, err_msg = my_daudit_scheduler.update_job(job_id, time, freq)
+        res, err_msg = my_daudit_scheduler.update_job(channel_id, job_id, time, freq)
         if res == True:
             msg = builder.build(MessageType.CONFIRMATION, ConfirmationMessageData("update_job"))
         else:
@@ -218,18 +218,18 @@ def parse_jobs():
     # Get list of jobs
     job_str = []
     for job in request.json:
-        job_str.append(job['id'])
+        job_str.append(job['id'] + ":" + job['date_created'] + ":" + job['channel_id'])
 
     # Add to auditQueue
-    #TODO: Remove hardcoding of channel and date_col
-    for key in job_str:
+    for work in job_str:
+        key, date_created, channel = work.split(":")
         db_host, db_name, table_name = key.split("/")
         audit_job = Job(
             table_name,
             db_name,
             db_host,
-            'CreatedDate',
-            'CUPB68AP5'
+            date_created,
+            channel
         )
         auditQueue.put((WorkType.RUN_AUDIT, audit_job))
 

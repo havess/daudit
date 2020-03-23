@@ -2,7 +2,7 @@ from scheduler import DauditScheduler
 
 def main():
     scheduler = DauditScheduler()
-    scheduler.schedule_job("LOLdb", "testing", "test2", hour=2)
+    scheduler.schedule_job("CUPB68AP5", "LOLdb", "testing", "test2", hour=2)
 
 if __name__ == "__main__":
     try:
