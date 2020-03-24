@@ -119,8 +119,6 @@ def process_directive(event_data):
         msg = builder.build(MessageType.HELP, HelpMessageData())
     elif command == "create_job":
         host_name, db_name, table_name, time = args.split(' ')
-        my_daudit.add_monitored_table(host_name, db_name, table_name)
-        # TODO: Better handling of time format
         time = int(time)
         res, err_msg = my_daudit_scheduler.schedule_job(channel_id, host_name, db_name, table_name, time)
         if res == True:
@@ -294,7 +292,7 @@ def worker_function(name):
                 else:
                     id = notif_res[0][0]
                     useful_count = notif_res[0][1]
-                    db_conn_internal.update_notification_useful_count(id, useful_count+1)         
+                    db_conn_internal.update_notification_useful_count(id, useful_count+1)
 
         elif workType == WorkType.INCREASE_CONF_INTERVAL:
             action_data = data.get("actions")[0]

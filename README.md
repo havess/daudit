@@ -34,11 +34,9 @@ Welcome to Daudit, a data auditing tool built on top of Slack to help you quickl
 
 -  `users:write`
 
--  `app_mention`
+-  `app_mentions:read`
 
 -  `channels:read`
-
--  `app_mentions`
 
   
 

@@ -20,7 +20,7 @@ def create_or_update_job_config(channel, config, db_host, database, table, hour,
         config[key] = {
             'hour_of_day': hour,
             'freq_in_days': freq_in_days,
-            'last_ran': "",
+            'last_ran': "NEVER",
             'date_created': datetime.now().strftime("%d/%m/%Y %H:%M"),
             'channel_id': channel
         }
