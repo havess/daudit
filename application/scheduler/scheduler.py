@@ -10,7 +10,7 @@ DAUDIT_COMMAND = '(cd /home/application/scheduler/ && echo "*** `date -u` ***" >
 
 
 def create_or_update_job_config(channel, config, db_host, database, table, hour, freq_in_days):
-    key = '%s/%s/%s' % (db_host, database, table)
+    key = '%s|%s|%s' % (db_host, database, table)
     if key in config:
         config[key]['hour_of_day'] = hour
         config[key]['channel_id'] = channel
@@ -72,7 +72,8 @@ class DauditScheduler:
         else:
             return False, "No jobs seem to exist, config file empty."
 
-        host, database, table = job_id.split("/")
+        print("JOB ID:", job_id)
+        host, database, table = job_id.split("|")
 
         with open(CONFIG_PATH, 'r+') as f:
             config_json = json.load(f)
@@ -92,7 +93,6 @@ class DauditScheduler:
 
         with open(CONFIG_PATH, 'r+') as f:
             config_json = json.load(f)
-            print("CONFIG JSON", config_json)
             config_json.pop(job)
             f.seek(0)
             f.write(json.dumps(config_json))
