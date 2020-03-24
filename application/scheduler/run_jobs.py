@@ -26,8 +26,8 @@ def main():
                         "date_created": value['date_created'],
                         "channel_id": value['channel_id']
                     })
-                    print("\t%s" % key)
-                value['last_ran'] = datetime.now().strftime("%d/%m/%Y %H:%M")
+                    value['last_ran'] = datetime.now().strftime("%d/%m/%Y %H:%M")
+                    print("\t * %s" % key)
 
             # Send the jobs only if there are any to send
             if len(list_of_jobs) > 0:
