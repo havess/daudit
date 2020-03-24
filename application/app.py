@@ -216,13 +216,13 @@ def parse_jobs():
     # Get list of jobs
     job_str = []
     for job in request.json:
-        job_str.append(job['id'] + ":" + job['date_created'] + ":" + job['channel_id'])
+        job_str.append(job['id'] + ";" + job['date_created'] + ";" + job['channel_id'])
 
     # Add to auditQueue
     for work in job_str:
-        print(work)
-        key, date_created, channel = work.split(":")
-        db_host, db_name, table_name = key.split("/")
+        key, date_created, channel = work.split(";")
+        print("Received job: %s" % key)
+        db_host, db_name, table_name = key.split("|")
         audit_job = Job(
             table_name,
             db_name,
