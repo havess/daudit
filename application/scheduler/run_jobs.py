@@ -16,7 +16,6 @@ def main():
     if os.path.isfile(CONFIG_PATH) and os.access(CONFIG_PATH, os.R_OK):
         with open(CONFIG_PATH, 'r+') as config_file:
             config_json = json.load(config_file)
-            print("Sending the following jobs:")
             list_of_jobs = []
             hour = datetime.now().hour
             for (key, value) in config_json.items():
@@ -30,27 +29,28 @@ def main():
 
             # Send the jobs only if there are any to send
             if len(list_of_jobs) > 0:
-                print("Current time: %s" % datetime.now())
-                print("Sending: " + str(list_of_jobs))
+                print("\tSending the following jobs: " + str(list_of_jobs))
                 r = requests.post(url=DAUDIT_URL, json=list_of_jobs)
 
-                print("Response from Daudit: " + str(r.status_code))
+                print("\tResponse from Daudit: " + str(r.status_code))
                 if r.status_code == 200:
-                    print("Jobs successfully posted to run on Daudit!")
+                    print("\tJobs successfully posted to run on Daudit!")
                 else:
-                    print("ERROR: jobs not successfully posted on Daudit!")
+                    print("\tERROR: jobs not successfully posted on Daudit!")
 
                 # Update last ran field in file
                 config_file.seek(0)
                 config_file.write(json.dumps(config_json))
                 config_file.truncate()
+            else:
+                print("\tNo jobs to run at this hour.")
     else:
-        print("Config file does not exist. Please schedule a job first.")
+        print("\tConfig file does not exist. Please schedule a job first.")
 
 
 if __name__ == "__main__":
     try:
-        print("Running jobs that are scheduled...")
+        print("Scanning scheduled jobs...")
         main()
     except KeyboardInterrupt:
         print("INTERRUPT")
