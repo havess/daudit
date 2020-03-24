@@ -77,8 +77,8 @@ class HelpMessageData(MessageData):
                 "*create_job <db_host> <db_name> <table_name> <time>* - Create job to run periodically. \n" +
                 "*update_job <db_host>|<db_name>|<table_name> <time> <frequency_in_days>* - Update scheduled job parameters. \n" +
                 "*delete_job <db_host>|<db_name>|<table_name>* - Delete scheduled job. \n" +
-                "*list_databases* - List databases. \n" +
-                "*list_jobs* - Initiate a full audit.")]
+                "*list_databases* - List configured databases. \n" +
+                "*list_jobs* - List configured jobs.")]
 
 class DMMessageData(MessageData):
     def __init__(self, channels):
@@ -181,7 +181,7 @@ class JobListMessageData(MessageData):
                         "\t*Hour of Day:* " + job[1] + "\n" + \
                         "\t*Freq in Days:* " + job[2] + "\n" + \
                         "\t*Date Created:* " + job[3] + "\n" + \
-                        "\t*Last Ran:* "  + job[4] + "\n\n" 
+                        "\t*Last Ran:* "  + job[4] + "\n\n"
 
         list_str += "➕\n"
         return [create_block("Job List\n\n" + list_str)]
