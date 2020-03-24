@@ -18,7 +18,7 @@ Welcome to Daudit, a data auditing tool built on top of Slack to help you quickl
 
 1. Go to your Slack [workspace]([https://api.slack.com/](https://api.slack.com/)) and click on **Your Apps** in the top right hand corner.
 
-2. Click **Create New App**, we recommend naming it **Daudit** and add it your team's workspace.
+2. Click **Create New App**, we recommend naming it **Daudit** and add it your team's workspace. Feel free to use the logo included in our repo as the app's logo.
 
 3. Under **Features**, click **OAuth & Permissions** and under the **Bot Token Scopes** section add the following OAuth scopes:
 
@@ -66,4 +66,4 @@ Welcome to Daudit, a data auditing tool built on top of Slack to help you quickl
 
 -  `app_mention`
 
-9. Go into your Slack workspace, go to a channel you would like to run Daudit in , run `@Daudit help` and you will receive a response from Daudit with a list of possible commands (similar to a Linux man page). If you named your application something other than Daudit, then use that name instead of Daudit when you type a command.
+9. Go into your Slack workspace, go to a channel you would like to run Daudit in, add Daudit to the channle and then run `@Daudit help` and you will receive a response from Daudit with a list of possible commands (similar to a Linux man page). If you named your application something other than Daudit, then use that name instead of Daudit when you type a command.
