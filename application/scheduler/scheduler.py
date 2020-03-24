@@ -3,7 +3,6 @@ import json
 import os
 import sys
 from datetime import datetime
-from pytz import timezone
 
 CONFIG_PATH = 'scheduler/config.json'
 DAUDIT_COMMAND = '(cd /home/application/scheduler/ && echo "*** `date -u` ***" >> out.log && ./run_jobs.py >> out.log)'
