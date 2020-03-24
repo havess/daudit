@@ -18,6 +18,7 @@ def main():
             config_json = json.load(config_file)
             list_of_jobs = []
             hour = datetime.now().hour
+            print("\tJobs to queue:")
             for (key, value) in config_json.items():
                 if value["hour_of_day"] == hour:
                     list_of_jobs.append({
@@ -25,11 +26,11 @@ def main():
                         "date_created": value['date_created'],
                         "channel_id": value['channel_id']
                     })
+                    print("\t%s" % key)
                 value['last_ran'] = datetime.now().strftime("%d/%m/%Y %H:%M")
 
             # Send the jobs only if there are any to send
             if len(list_of_jobs) > 0:
-                print("\tSending the following jobs: " + str(list_of_jobs))
                 r = requests.post(url=DAUDIT_URL, json=list_of_jobs)
 
                 print("\tResponse from Daudit: " + str(r.status_code))
@@ -43,14 +44,14 @@ def main():
                 config_file.write(json.dumps(config_json))
                 config_file.truncate()
             else:
-                print("\tNo jobs to run at this hour.")
+                print("\tNONE - No jobs to run at this hour.")
     else:
         print("\tConfig file does not exist. Please schedule a job first.")
 
 
 if __name__ == "__main__":
     try:
-        print("Scanning scheduled jobs...")
+        print("Scanning all scheduled jobs...")
         main()
     except KeyboardInterrupt:
         print("INTERRUPT")
