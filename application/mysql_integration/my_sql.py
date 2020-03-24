@@ -27,15 +27,14 @@ def get_database_list():
     config = configparser.ConfigParser()
     
     config.read(PATH)
-    db_list = []
+    dbs = []
     for db in config:
         if db == 'DEFAULT':
             continue
         host, name = db.split(":")
-        db_list.append("Name: " + name + " Host: " + host)
+        dbs.append((host, name))
 
-    print("RETURNING", db_list)
-    return db_list
+    return dbs
 
 def get_internal_connection():
     return Connector('127.0.0.1', 'daudit_internal', 'root', 'rootroot')
@@ -48,7 +47,6 @@ def add_config(host_name, db_name, username, password):
     desc = get_db_descriptor(host_name, db_name)
     
     if desc in config:
-        print("ALREADY HAS SECTION")
         return False
 
     config[desc] = {

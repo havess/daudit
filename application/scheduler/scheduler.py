@@ -41,7 +41,8 @@ class DauditScheduler:
             config_json = json.load(config_file)
             list_of_jobs = []
             for (key, val) in config_json.items():
-                list_of_jobs.append(key + " " + str(val['hour_of_day']) + " " + str(val['freq_in_days']))
+                job = (key, str(val['hour_of_day']), str(val['freq_in_days']), str(val['date_created']), str(val['last_ran']))
+                list_of_jobs.append(job)
             return list_of_jobs
 
     def schedule_job(self, channel, db_host, database, table, hour=0, freq_in_days=1):

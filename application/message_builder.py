@@ -156,17 +156,35 @@ class UnknownCommandMessageData(MessageData):
     def to_markdown_block(self):
         return [create_block("Invalid command, try typing 'help'. \n\n")]
 
-class ListMessageData(MessageData):
-    def __init__(self, list_name, items):
-        self._items = items
-        self._list_name = list_name
+class DatabaseListMessageData(MessageData):
+    def __init__(self, dbs):
+        self._dbs = dbs
     def to_notification_text(self):
-        return "Daudit " + self._list_name + " request completed."
+        return "Daudit database list request completed."
     def to_markdown_block(self):
         list_str  = ""
-        for item in self._items:
-            list_str += "*" + item + "*\n"
-        return [create_block(self._list_name + "\n\n" + list_str)]
+        for db in self._dbs:
+            list_str += "➕\n" + "\t*Host*: " + db[0] + "\n\t*Name:* " + db[1] + "\n\t*ID:* " + db[0] + "/" + db[1] + "\n\n"
+        list_str += "➕\n"
+        return [create_block("Database List\n\n" + list_str)]
+
+class JobListMessageData(MessageData):
+    def __init__(self, jobs):
+        self._jobs = jobs
+    def to_notification_text(self):
+        return "Daudit job list request completed."
+    def to_markdown_block(self):
+        list_str  = ""
+        for job in self._jobs:
+            list_str += "➕\n" + \
+                        "\t*Job ID:* " + job[0] + "\n" + \
+                        "\t*Hour of Day:* " + job[1] + "\n" + \
+                        "\t*Freq in Days:* " + job[2] + "\n" + \
+                        "\t*Date Created:* " + job[3] + "\n" + \
+                        "\t*Last Ran:* "  + job[4] + "\n\n" 
+
+        list_str += "➕\n"
+        return [create_block("Job List\n\n" + list_str)]
 
 class MessageBuilder:
     DIVIDER_BLOCK = {"type": "divider"}

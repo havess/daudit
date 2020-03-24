@@ -145,10 +145,10 @@ def process_directive(event_data):
             msg = builder.build(MessageType.INVALID_ARGS, InvalidArgsMessageData())
     elif command == "list_databases":
         databases = sql.get_database_list()
-        msg = builder.build(MessageType.LIST, ListMessageData("Database list", databases))
+        msg = builder.build(MessageType.LIST, DatabaseListMessageData(databases))
     elif command == "list_jobs":
         jobs = my_daudit_scheduler.get_job_list()
-        msg = builder.build(MessageType.LIST, ListMessageData("Job list", jobs))
+        msg = builder.build(MessageType.LIST, JobListMessageData(jobs))
     else:
         msg = builder.build(MessageType.UNKNOWN, UnknownCommandMessageData())
 
