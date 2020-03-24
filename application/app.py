@@ -220,6 +220,7 @@ def parse_jobs():
 
     # Add to auditQueue
     for work in job_str:
+        print(key)
         key, date_created, channel = work.split(":")
         db_host, db_name, table_name = key.split("/")
         audit_job = Job(
