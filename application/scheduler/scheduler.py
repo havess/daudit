@@ -28,12 +28,13 @@ def create_or_update_job_config(channel, config, db_host, database, table, hour,
 
 class DauditScheduler:
     def __init__(self):
-        self.cron = CronTab(user=True)
-        for job in self.cron.find_command(DAUDIT_COMMAND):
-            self.cron.remove(job)
-        job = self.cron.new(command=DAUDIT_COMMAND)
-        job.every(1).minutes()
-        self.cron.write()
+        pass
+        # self.cron = CronTab(user=True)
+        # for job in self.cron.find_command(DAUDIT_COMMAND):
+        #     self.cron.remove(job)
+        # job = self.cron.new(command=DAUDIT_COMMAND)
+        # job.every(1).minutes()
+        # self.cron.write()
 
     def get_job_list(self):
         with open(CONFIG_PATH, 'r+') as config_file:
