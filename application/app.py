@@ -42,7 +42,9 @@ def extract_raw_text(text):
 
     if '|' in text:
         # This means the text was formatted as "<url|raw>" and we need to extract just raw
-        return text.split('|')[1][:-1]
+        i = text.index('|')
+        j = text.index('>')
+        return text[i+1:j] + text[j+1:]
 
     log("PARSING TEXT ERROR")
     return text
