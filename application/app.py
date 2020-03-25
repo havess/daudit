@@ -91,13 +91,13 @@ def process_directive(event_data):
             log(config_json)
 
             if args in config_json:
-                db_host, db_name, table_name = args.split("/")
+                db_host, db_name, table_name = args.split("|")
 
                 audit_job = Job(
                     table_name,
                     db_name,
                     db_host,
-                    config_json[args]['date_created'],
+                    config_json[args]['date_col'],
                     config_json[args]['channel_id']
                 )
                 auditQueue.put((WorkType.RUN_AUDIT, audit_job))

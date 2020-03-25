@@ -1,1 +1,10 @@
-{}
+{
+    "ec2-34-236-66-104.compute-1.amazonaws.com|daudit|NYC311Data": {
+        "hour_of_day": 1,
+        "freq_in_days": 1,
+        "last_ran": "NEVER",
+        "date_created": "25/03/2020 03:37",
+        "channel_id": "CUPB68AP5",
+        "date_col": "CreatedDate"
+    }
+}
